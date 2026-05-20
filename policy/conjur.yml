@@ -1,0 +1,36 @@
+- !policy
+  id: demo
+  body:
+    - !group workloads
+
+    # Workload A Identity
+    - !host workload-a
+    - !grant
+        role: !group workloads
+        member: !host workload-a
+
+    # Workload B Identity
+    - !host workload-b
+    - !grant
+        role: !group workloads
+        member: !host workload-b
+
+    # Define the CA service / capability
+    - !webservice pki/ca
+    
+    # Define variables to hold CA material if needed, or represent the capability
+    - !variable pki/ca/cacert
+    
+    # Allow workloads to execute against the CA webservice to sign certs
+    - !permit
+        role: !group workloads
+        privilege: [ read, execute ]
+        resource: !webservice pki/ca
+
+    # Policy restriction: Only allow SPIFFE SANs for the demo namespace
+    # (Note: Exact enforcement mechanisms depend on the Conjur PKI plugin/configuration)
+    - !policy
+        id: pki/ca/policy
+        body:
+          - !variable allowed_san_pattern
+          - !variable max_ttl

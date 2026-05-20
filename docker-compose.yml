@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  database:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: conjur
+      POSTGRES_USER: conjur
+      POSTGRES_PASSWORD: ${CONJUR_DB_PASSWORD:-secret}
+    volumes:
+      - database_data:/var/lib/postgresql/data
+    networks:
+      - conjur
+
+  conjur:
+    image: cyberark/conjur:latest
+    command: server
+    environment:
+      DATABASE_URL: postgres://conjur:${CONJUR_DB_PASSWORD:-secret}@database/conjur
+      CONJUR_DATA_KEY: ${CONJUR_DATA_KEY}
+    ports:
+      - "8080:80"
+    depends_on:
+      - database
+    networks:
+      - conjur
+    volumes:
+      - ./policy:/policy
+
+  workload-a:
+    build:
+      context: ./workloads
+      dockerfile: mtls-client/Dockerfile
+    environment:
+      CONJUR_APPLIANCE_URL: http://conjur:80
+      CONJUR_ACCOUNT: demo
+      CONJUR_AUTHN_LOGIN: host/demo/workload-a
+      CONJUR_AUTHN_API_KEY: ${WORKLOAD_A_API_KEY}
+    depends_on:
+      - conjur
+      - workload-b
+    networks:
+      - conjur
+    volumes:
+      - ./certs:/ca:ro
+
+  workload-b:
+    build:
+      context: ./workloads
+      dockerfile: mtls-server/Dockerfile
+    environment:
+      CONJUR_APPLIANCE_URL: http://conjur:80
+      CONJUR_ACCOUNT: demo
+      CONJUR_AUTHN_LOGIN: host/demo/workload-b
+      CONJUR_AUTHN_API_KEY: ${WORKLOAD_B_API_KEY}
+    ports:
+      - "8443:8443"
+    depends_on:
+      - conjur
+    networks:
+      - conjur
+    volumes:
+      - ./certs:/ca:ro
+
+networks:
+  conjur:
+
+volumes:
+  database_data:

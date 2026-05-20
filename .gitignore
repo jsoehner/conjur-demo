@@ -1,0 +1,5 @@
+certs/
+admin_data.txt
+.env
+__pycache__/
+*.pyc
