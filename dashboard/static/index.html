@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Conjur mTLS Demo – Live Dashboard</title>
+  <meta name="description" content="Live visualisation of certificate issuance, renewal, and mutual TLS communication between Conjur-managed workloads." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- ── Header ──────────────────────────────────────────────────── -->
+  <header class="site-header">
+    <div class="header-brand">
+      <div class="brand-icon">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+          <rect width="28" height="28" rx="8" fill="url(#grad-icon)"/>
+          <path d="M14 6L20 10V14C20 17.5 17.5 20.5 14 22C10.5 20.5 8 17.5 8 14V10L14 6Z" stroke="white" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
+          <path d="M11 14L13 16L17 12" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <defs>
+            <linearGradient id="grad-icon" x1="0" y1="0" x2="28" y2="28">
+              <stop offset="0%" stop-color="#6366f1"/>
+              <stop offset="100%" stop-color="#8b5cf6"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <div>
+        <h1 class="brand-title">Conjur mTLS Dashboard</h1>
+        <p class="brand-subtitle">Certificate Lifecycle &amp; Workload Communication</p>
+      </div>
+    </div>
+    <div class="header-status">
+      <span class="status-dot" id="global-status-dot"></span>
+      <span class="status-label" id="global-status-label">Connecting…</span>
+      <span class="header-time" id="header-clock"></span>
+    </div>
+  </header>
+
+  <main class="main-grid">
+
+    <!-- ── Left: Architecture Visualisation ──────────────────────── -->
+    <section class="panel arch-panel" aria-label="Architecture visualisation">
+      <div class="panel-header">
+        <h2 class="panel-title">Live mTLS Communication</h2>
+        <span class="panel-badge" id="request-counter">0 requests</span>
+      </div>
+
+      <div class="arch-canvas" id="arch-canvas" aria-live="polite">
+        <!-- Conjur node -->
+        <div class="arch-node conjur-node" id="node-conjur">
+          <div class="node-glow conjur-glow"></div>
+          <div class="node-icon">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+              <path d="M16 4L26 9V16C26 21.5 21.5 26.5 16 28C10.5 26.5 6 21.5 6 16V9L16 4Z" fill="url(#grad-conjur)" stroke="rgba(99,102,241,0.5)" stroke-width="1"/>
+              <path d="M12 16L15 19L20 13" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <defs>
+              <linearGradient id="grad-conjur" x1="6" y1="4" x2="26" y2="28">
+                <stop offset="0%" stop-color="#6366f1"/>
+                <stop offset="100%" stop-color="#4f46e5"/>
+              </linearGradient>
+            </defs>
+          </div>
+          <span class="node-label">Conjur</span>
+          <span class="node-sublabel">Policy Engine &amp; CA</span>
+          <div class="node-status-badge" id="conjur-status-badge">–</div>
+        </div>
+
+        <!-- CA arrows (top) -->
+        <div class="arch-ca-row">
+          <div class="ca-arrow ca-arrow-left">
+            <div class="arrow-label">CSR + Sign</div>
+            <div class="arrow-line">
+              <div class="arrow-pulse" id="pulse-ca-a"></div>
+            </div>
+          </div>
+          <div class="ca-arrow ca-arrow-right">
+            <div class="arrow-label">CSR + Sign</div>
+            <div class="arrow-line">
+              <div class="arrow-pulse" id="pulse-ca-b"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Workload row -->
+        <div class="arch-workload-row">
+          <!-- Workload A -->
+          <div class="arch-node workload-node" id="node-workload-a">
+            <div class="node-glow workload-glow"></div>
+            <div class="node-icon">
+              <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                <rect x="3" y="8" width="22" height="14" rx="3" fill="url(#grad-wa)" stroke="rgba(16,185,129,0.4)" stroke-width="1"/>
+                <rect x="9" y="4" width="10" height="5" rx="1.5" fill="rgba(16,185,129,0.6)"/>
+                <circle cx="9" cy="17" r="2" fill="rgba(255,255,255,0.7)"/>
+                <rect x="13" y="14" width="8" height="1.5" rx="0.75" fill="rgba(255,255,255,0.5)"/>
+                <rect x="13" y="17" width="5" height="1.5" rx="0.75" fill="rgba(255,255,255,0.5)"/>
+                <defs>
+                  <linearGradient id="grad-wa" x1="3" y1="8" x2="25" y2="22">
+                    <stop offset="0%" stop-color="#059669"/>
+                    <stop offset="100%" stop-color="#10b981"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+            <span class="node-label">Workload A</span>
+            <span class="node-sublabel">mTLS Client</span>
+            <div class="node-status-badge" id="workload-a-status-badge">–</div>
+          </div>
+
+          <!-- mTLS Arrow -->
+          <div class="mtls-arrow-container">
+            <div class="mtls-arrow-label">mTLS</div>
+            <div class="mtls-arrow-track">
+              <div class="mtls-packet" id="mtls-packet-ab" aria-hidden="true"></div>
+              <div class="mtls-arrow-line"></div>
+              <div class="mtls-arrowhead">›</div>
+            </div>
+            <div class="mtls-arrow-sublabel">Encrypted · Authenticated</div>
+          </div>
+
+          <!-- Workload B -->
+          <div class="arch-node workload-node" id="node-workload-b">
+            <div class="node-glow workload-glow"></div>
+            <div class="node-icon">
+              <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                <rect x="2" y="4" width="24" height="20" rx="3" fill="url(#grad-wb)" stroke="rgba(59,130,246,0.4)" stroke-width="1"/>
+                <rect x="6" y="8" width="16" height="2" rx="1" fill="rgba(255,255,255,0.6)"/>
+                <rect x="6" y="12" width="10" height="1.5" rx="0.75" fill="rgba(255,255,255,0.4)"/>
+                <rect x="6" y="15" width="12" height="1.5" rx="0.75" fill="rgba(255,255,255,0.4)"/>
+                <rect x="6" y="18" width="7" height="1.5" rx="0.75" fill="rgba(255,255,255,0.4)"/>
+                <circle cx="21" cy="19" r="4" fill="rgba(59,130,246,0.8)"/>
+                <path d="M19 19L20.5 20.5L23 18" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                <defs>
+                  <linearGradient id="grad-wb" x1="2" y1="4" x2="26" y2="24">
+                    <stop offset="0%" stop-color="#1d4ed8"/>
+                    <stop offset="100%" stop-color="#3b82f6"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+            <span class="node-label">Workload B</span>
+            <span class="node-sublabel">mTLS Server :8443</span>
+            <div class="node-status-badge" id="workload-b-status-badge">–</div>
+          </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="arch-legend">
+          <span class="legend-item"><span class="legend-dot legend-conjur"></span>Conjur PKI</span>
+          <span class="legend-item"><span class="legend-dot legend-client"></span>Client</span>
+          <span class="legend-item"><span class="legend-dot legend-server"></span>Server</span>
+          <span class="legend-item"><span class="legend-dot legend-mtls"></span>mTLS Handshake</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Right column ───────────────────────────────────────────── -->
+    <div class="right-col">
+
+      <!-- Cert cards row -->
+      <div class="cert-row">
+        <!-- Cert A -->
+        <div class="cert-card" id="cert-card-a" aria-label="Workload A certificate">
+          <div class="cert-card-header">
+            <span class="cert-label">Workload A · Certificate</span>
+            <div class="cert-header-actions">
+              <button class="renew-btn" id="renew-btn-a" data-workload="workload-a">Force Renew</button>
+              <span class="cert-status-pill" id="cert-a-status">–</span>
+            </div>
+          </div>
+          <div class="cert-expiry-bar-wrap">
+            <div class="cert-expiry-bar" id="cert-a-bar"></div>
+          </div>
+          <div class="cert-time-left" id="cert-a-time">–</div>
+          <div class="cert-details" id="cert-a-details">
+            <div class="cert-row-detail"><span class="cert-key">Subject</span><span class="cert-val" id="cert-a-subject">–</span></div>
+            <div class="cert-row-detail"><span class="cert-key">Issuer</span><span class="cert-val" id="cert-a-issuer">–</span></div>
+            <div class="cert-row-detail"><span class="cert-key">SAN</span><span class="cert-val cert-mono" id="cert-a-san">–</span></div>
+            <div class="cert-row-detail"><span class="cert-key">Serial</span><span class="cert-val cert-mono" id="cert-a-serial">–</span></div>
+            <div class="cert-row-detail"><span class="cert-key">Expires</span><span class="cert-val" id="cert-a-expires">–</span></div>
+          </div>
+        </div>
+
+        <!-- Cert B -->
+        <div class="cert-card" id="cert-card-b" aria-label="Workload B certificate">
+          <div class="cert-card-header">
+            <span class="cert-label">Workload B · Certificate</span>
+            <div class="cert-header-actions">
+              <button class="renew-btn" id="renew-btn-b" data-workload="workload-b">Force Renew</button>
+              <span class="cert-status-pill" id="cert-b-status">–</span>
+            </div>
+          </div>
+          <div class="cert-expiry-bar-wrap">
+            <div class="cert-expiry-bar" id="cert-b-bar"></div>
+          </div>
+          <div class="cert-time-left" id="cert-b-time">–</div>
+          <div class="cert-details" id="cert-b-details">
+            <div class="cert-row-detail"><span class="cert-key">Subject</span><span class="cert-val" id="cert-b-subject">–</span></div>
+            <div class="cert-row-detail"><span class="cert-key">Issuer</span><span class="cert-val" id="cert-b-issuer">–</span></div>
+            <div class="cert-row-detail"><span class="cert-key">SAN</span><span class="cert-val cert-mono" id="cert-b-san">–</span></div>
+            <div class="cert-row-detail"><span class="cert-key">Serial</span><span class="cert-val cert-mono" id="cert-b-serial">–</span></div>
+            <div class="cert-row-detail"><span class="cert-key">Expires</span><span class="cert-val" id="cert-b-expires">–</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Activity Log -->
+      <div class="panel log-panel" aria-label="Live activity log">
+        <div class="panel-header">
+          <h2 class="panel-title">Live Activity Log</h2>
+          <div class="log-controls">
+            <label class="filter-toggle" for="filter-sidecar">
+              <input type="checkbox" id="filter-sidecar" checked /> Sidecar
+            </label>
+            <label class="filter-toggle" for="filter-server">
+              <input type="checkbox" id="filter-server" checked /> Server
+            </label>
+            <label class="filter-toggle" for="filter-client">
+              <input type="checkbox" id="filter-client" checked /> Client
+            </label>
+            <button class="log-clear-btn" id="log-clear-btn" aria-label="Clear log">Clear</button>
+          </div>
+        </div>
+        <div class="log-stream" id="log-stream" role="log" aria-live="polite" aria-relevant="additions"></div>
+      </div>
+
+    </div><!-- /right-col -->
+
+  </main>
+
+  <!-- ── Stats bar ──────────────────────────────────────────────── -->
+  <footer class="stats-bar">
+    <div class="stat-item">
+      <span class="stat-label">Total Requests</span>
+      <span class="stat-val" id="stat-total-req">0</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Successful</span>
+      <span class="stat-val stat-green" id="stat-success">0</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Failures</span>
+      <span class="stat-val stat-red" id="stat-fail">0</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Cert Renewals</span>
+      <span class="stat-val stat-purple" id="stat-renewals">0</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Dashboard Uptime</span>
+      <span class="stat-val" id="stat-uptime">0s</span>
+    </div>
+  </footer>
+
+  <script src="main.js"></script>
+</body>
+</html>

@@ -1,5 +1,7 @@
 certs/
 admin_data.txt
+policy/policy_data.json
 .env
 __pycache__/
 *.pyc
+dashboard/__pycache__/

@@ -98,5 +98,4 @@ The demo **must not** include:
 
 The demo is successful when stakeholders can clearly see:
 
-> **How Conjur enables secure, automated certificate issuance and renewal for workloads — and where it fits (and does not fit) in an enterprise certificate lifecycle strategy.**
-``
+> **How Conjur enables secure, automated certificate issuance and renewal for workloads — and where it fits (and does not fit) in an enterprise certificate lifecycle strategy.**

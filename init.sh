@@ -3,12 +3,64 @@ set -e
 
 echo "=== Conjur Demo Initialization ==="
 
-# Cleanup previous state
+# 0. Cleanup previous state
 echo "[0/4] Cleaning up previous state..."
 echo "       -> Tearing down existing containers, networks, and volumes to ensure a clean slate."
-docker-compose down -v
-docker volume rm conjur-demo_database_data 2>/dev/null || true
+docker-compose down -v 2>/dev/null || true
+docker volume rm conjur-demo_database_data conjur-demo_workload_a_certs conjur-demo_workload_b_certs 2>/dev/null || true
 rm -rf certs/*
+
+# Pre-flight: ensure required ports are free before starting anything.
+# -n  = skip hostname resolution (prevents lsof hanging on DNS lookups)
+# -P  = skip port-name resolution (prevents lsof hanging on /etc/services lookups)
+# NOTE: Port 5001 is used for the dashboard (avoids macOS AirPlay Receiver on port 5000).
+REQUIRED_PORTS=(8080 8443 5001)
+echo "[Pre-flight] Checking required ports: ${REQUIRED_PORTS[*]}..."
+PORT_CONFLICT=0
+for PORT in "${REQUIRED_PORTS[@]}"; do
+    # Use nc for a fast non-blocking check first; only call lsof if the port is actually busy.
+    if nc -z localhost "$PORT" 2>/dev/null; then
+        PORT_CONFLICT=1
+        # -nP suppresses slow DNS + port-name lookups so lsof returns immediately.
+        PIDS=$(lsof -nP -i tcp:"$PORT" -sTCP:LISTEN -t 2>/dev/null)
+        echo "       -> Port $PORT is in use by PID(s): ${PIDS:-unknown}"
+        lsof -nP -i tcp:"$PORT" -sTCP:LISTEN 2>/dev/null | tail -n +2 | \
+            awk '{printf "          %s (PID %s)\n", $1, $2}'
+        echo "       -> Releasing port $PORT..."
+        if [ -n "$PIDS" ]; then
+            echo "$PIDS" | xargs kill -9 2>/dev/null || true
+        fi
+        # Brief wait to allow OS to release the socket
+        sleep 1
+        # Verify it's actually free now
+        if nc -z localhost "$PORT" 2>/dev/null; then
+            # Identify whether this is a system process we cannot kill
+            PROC_NAME=$(lsof -nP -i tcp:"$PORT" -sTCP:LISTEN 2>/dev/null | awk 'NR==2{print $1}')
+            echo ""
+            echo "ERROR: Port $PORT is still in use and cannot be freed."
+            echo "       Process: ${PROC_NAME:-unknown}"
+            if [[ "$PROC_NAME" == "ControlCe" || "$PROC_NAME" == "AirPlayXP" ]]; then
+                echo ""
+                echo "       This is the macOS AirPlay Receiver, which claims port 5000/5001."
+                echo "       To free it, go to:"
+                echo "         System Settings → General → AirDrop & Handoff → AirPlay Receiver → OFF"
+                echo "       Then re-run: bash init.sh"
+            else
+                echo "       Please stop this process manually and re-run: bash init.sh"
+            fi
+            echo ""
+            exit 1
+        fi
+        echo "       -> Port $PORT is now free."
+    else
+        echo "       -> Port $PORT is free. ✓"
+    fi
+done
+if [ "$PORT_CONFLICT" -eq 1 ]; then
+    echo "[Pre-flight] Port conflicts resolved."
+else
+    echo "[Pre-flight] All ports are available."
+fi
 
 # 1. Generate a CA for the demo
 echo "[1/4] Generating Demo Root CA..."
@@ -28,7 +80,22 @@ export CONJUR_DB_PASSWORD="demo_password123"
 echo "[2/4] Starting Conjur Infrastructure..."
 echo "       -> Spinning up the PostgreSQL database and Conjur OSS container."
 docker-compose up -d database conjur
-sleep 15 # Wait for DB to be ready
+
+# BUG FIX: Replace fixed 'sleep 15' with a health-check loop so we wait exactly
+# as long as needed, and never fail on slow machines.
+echo "       -> Waiting for PostgreSQL to be ready..."
+MAX_RETRIES=30
+RETRY_COUNT=0
+until docker-compose exec -T database pg_isready -U conjur -d conjur > /dev/null 2>&1; do
+    RETRY_COUNT=$((RETRY_COUNT + 1))
+    if [ "$RETRY_COUNT" -ge "$MAX_RETRIES" ]; then
+        echo "ERROR: PostgreSQL did not become ready after ${MAX_RETRIES} attempts. Aborting."
+        exit 1
+    fi
+    echo "       -> PostgreSQL not ready yet (attempt $RETRY_COUNT/$MAX_RETRIES). Retrying in 2s..."
+    sleep 2
+done
+echo "       -> PostgreSQL is ready."
 
 # 3. Initialize Conjur
 echo "[3/4] Initializing Conjur and loading policy..."
@@ -36,6 +103,10 @@ echo "       -> Creating the 'demo' account."
 echo "       -> Loading policy/conjur.yml to define host identities, CA permissions, and restrictions."
 docker-compose exec -T conjur conjurctl account create demo > admin_data.txt
 API_KEY=$(grep "API key for admin" admin_data.txt | awk '{print $5}')
+
+# BUG FIX: Remove admin_data.txt immediately after extracting the API key so it
+# is never accidentally committed or left on disk.
+rm -f admin_data.txt
 
 # Use the CLI container to load the policy
 docker run --rm -i --network conjur-demo_conjur \
@@ -49,12 +120,21 @@ docker run --rm -i --network conjur-demo_conjur \
 export WORKLOAD_A_API_KEY=$(grep -A 1 '"id": "demo:host:demo/workload-a"' policy/policy_data.json | grep api_key | awk -F'"' '{print $4}')
 export WORKLOAD_B_API_KEY=$(grep -A 1 '"id": "demo:host:demo/workload-b"' policy/policy_data.json | grep api_key | awk -F'"' '{print $4}')
 
+# Scrub policy_data.json so freshly generated keys are never committed to Git
+# (keys are already captured in environment variables above)
+cat > policy/policy_data.json << 'EOF'
+{
+  "note": "This file is generated at runtime by init.sh and is intentionally not committed.",
+  "created_roles": {}
+}
+EOF
+
 # 4. Start the workloads
 echo "[4/4] Building and starting Workloads..."
 echo "       -> This step launches the client (Workload A) and server (Workload B)."
 echo "       -> Both workloads use a sidecar to independently generate a private key and CSR."
 echo "       -> The sidecars authenticate with Conjur and receive signed X.509 certificates."
-docker-compose up -d --build workload-a workload-b
+docker-compose up -d --build workload-a workload-b dashboard
 
 echo ""
 echo "=========================================================="
@@ -68,6 +148,10 @@ echo ""
 echo "To observe the mTLS traffic in action and view the sidecar certificate logic, run:"
 echo ""
 echo "    docker-compose logs -f workload-a workload-b"
+echo ""
+echo "Or open the live visual dashboard in your browser:"
+echo ""
+echo "    http://localhost:5001"
 echo ""
 echo "Press Ctrl+C to stop following the logs when you are done."
 echo "=========================================================="

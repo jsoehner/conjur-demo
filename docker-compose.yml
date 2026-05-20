@@ -43,6 +43,7 @@ services:
       - conjur
     volumes:
       - ./certs:/ca:ro
+      - workload_a_certs:/certs
 
   workload-b:
     build:
@@ -61,9 +62,32 @@ services:
       - conjur
     volumes:
       - ./certs:/ca:ro
+      - workload_b_certs:/certs
+
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    ports:
+      - "5001:5000"
+    depends_on:
+      - workload-a
+      - workload-b
+    networks:
+      - conjur
+    volumes:
+      # Read-only access to CA cert for reference
+      - ./certs:/certs:ro
+      # Read access to workload cert volumes for expiry monitoring
+      - workload_a_certs:/workload_a_certs
+      - workload_b_certs:/workload_b_certs
+      # Docker socket so the dashboard can tail container logs
+      - /var/run/docker.sock:/var/run/docker.sock:ro
 
 networks:
   conjur:
 
 volumes:
   database_data:
+  workload_a_certs:
+  workload_b_certs:
