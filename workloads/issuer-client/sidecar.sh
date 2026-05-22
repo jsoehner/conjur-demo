@@ -10,6 +10,7 @@ CONJUR_URL=${CONJUR_APPLIANCE_URL}
 ACCOUNT=${CONJUR_ACCOUNT}
 LOGIN=${CONJUR_AUTHN_LOGIN}
 API_KEY=${CONJUR_AUTHN_API_KEY}
+CA_SIGNER_URL=${CA_SIGNER_URL:-http://ca-signer:8000}
 SERVICE_NAME=$(echo $LOGIN | awk -F'/' '{print $3}')
 
 CERT_DIR="/certs"
@@ -37,7 +38,7 @@ generate_and_sign() {
     echo "[Sidecar] Authenticating to Conjur as $LOGIN..."
     # Get Conjur access token
     LOGIN_ENCODED=${LOGIN//\//%2F}
-    TOKEN=$(curl -s -k --request POST "$CONJUR_URL/authn/$ACCOUNT/$LOGIN_ENCODED/authenticate" \
+    TOKEN=$(curl -s --request POST "$CONJUR_URL/authn/$ACCOUNT/$LOGIN_ENCODED/authenticate" \
       --header "Content-Type: text/plain" \
       --data-raw "$API_KEY")
 
@@ -46,50 +47,24 @@ generate_and_sign() {
         return 1
     fi
 
-    echo "[Sidecar] Requesting certificate signing from Conjur..."
-    # Note: This uses a hypothetical/plugin endpoint for CSR signing in Conjur.
-    # In a real setup, this would hit the specific PKI endpoint.
-    # We simulate the response here for the sake of the demo, or call the actual API if configured.
-    # SECURITY FIX: We now simulate Conjur's PKI engine by using the shared CA.
-    # In an Enterprise setup, this would be an API call to Conjur.
-    echo "[Sidecar] Signing certificate with Demo CA (5-minute TTL)..."
-    SVC_NAME=$(basename $LOGIN)
+    echo "[Sidecar] Requesting certificate signing from CA signer service..."
+    TEMP_CERT=$(mktemp)
+    HTTP_CODE=$(curl -sS -o "$TEMP_CERT" -w "%{http_code}" \
+      --request POST "$CA_SIGNER_URL/sign" \
+      --header "Content-Type: application/pem-certificate-request" \
+      --header "X-SAN: URI:$SAN" \
+      --header "X-Auth-Token: $TOKEN" \
+      --data-binary @"$CSR_FILE")
 
-    # Use openssl ca to allow specifying exact minute-level expiration
-    mkdir -p /tmp/ca/newcerts
-    touch /tmp/ca/index.txt
-    echo "unique_subject = no" > /tmp/ca/index.txt.attr
-    [ -f /tmp/ca/serial ] || echo 01 > /tmp/ca/serial
-    cat > /tmp/ca/ca.cnf << 'EOF'
-[ ca ]
-default_ca = CA_default
-[ CA_default ]
-dir = /tmp/ca
-database = $dir/index.txt
-new_certs_dir = /certs
-certificate = /ca/ca.crt
-private_key = /ca/ca.key
-serial = $dir/serial
-default_md = sha256
-policy = policy_any
-[ policy_any ]
-countryName = optional
-stateOrProvinceName = optional
-organizationName = optional
-organizationalUnitName = optional
-commonName = supplied
-emailAddress = optional
-EOF
+    if [ "$HTTP_CODE" != "200" ]; then
+        echo "[Sidecar] Certificate request failed with status $HTTP_CODE"
+        cat "$TEMP_CERT"
+        rm -f "$TEMP_CERT"
+        return 1
+    fi
 
-    # Calculate exactly 5 minutes from now in YYMMDDHHMMSSZ format
-    ENDDATE=$(date -u -d '+5 minutes' +%y%m%d%H%M%SZ)
-
-    openssl ca -batch -config /tmp/ca/ca.cnf -in $CSR_FILE -out $CERT_FILE.tmp -enddate $ENDDATE \
-        -extensions v3_req -extfile <(printf "[v3_req]\nsubjectAltName=URI:$SAN,DNS:$SVC_NAME\n") 2>/dev/null
-
-    # Atomic swap to prevent KEY_VALUES_MISMATCH during hot-reload
-    mv $KEY_FILE.tmp $KEY_FILE
-    mv $CERT_FILE.tmp $CERT_FILE
+    mv "$TEMP_CERT" "$CERT_FILE"
+    chmod 644 "$CERT_FILE"
 
     echo "[Sidecar] Certificate received and saved to $CERT_FILE"
 

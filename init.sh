@@ -67,35 +67,20 @@ echo "[1/4] Generating Demo Root CA..."
 echo "       -> Creating a local Root Certificate Authority."
 echo "       -> The Root CA simulates an enterprise CA that Conjur will use to sign workload certificates."
 mkdir -p certs
-chmod 777 certs
+chmod 755 certs
 openssl genrsa -out certs/ca.key 2048 2>/dev/null
 openssl req -x509 -new -nodes -key certs/ca.key -sha256 -days 3650 -out certs/ca.crt -subj "/CN=Demo-Root-CA" 2>/dev/null
 chmod 644 certs/ca.key certs/ca.crt
 
 # 2. Export variables for docker-compose
-export CONJUR_DATA_KEY="$(docker run --rm cyberark/conjur:latest data-key generate)"
+export CONJUR_DATA_KEY="$(docker run --rm cyberark/conjur:1.18.0 data-key generate)"
 export CONJUR_DB_PASSWORD="demo_password123"
 
 # Start the database and Conjur
 echo "[2/4] Starting Conjur Infrastructure..."
 echo "       -> Spinning up the PostgreSQL database and Conjur OSS container."
 docker-compose up -d database conjur
-
-# BUG FIX: Replace fixed 'sleep 15' with a health-check loop so we wait exactly
-# as long as needed, and never fail on slow machines.
-echo "       -> Waiting for PostgreSQL to be ready..."
-MAX_RETRIES=30
-RETRY_COUNT=0
-until docker-compose exec -T database pg_isready -U conjur -d conjur > /dev/null 2>&1; do
-    RETRY_COUNT=$((RETRY_COUNT + 1))
-    if [ "$RETRY_COUNT" -ge "$MAX_RETRIES" ]; then
-        echo "ERROR: PostgreSQL did not become ready after ${MAX_RETRIES} attempts. Aborting."
-        exit 1
-    fi
-    echo "       -> PostgreSQL not ready yet (attempt $RETRY_COUNT/$MAX_RETRIES). Retrying in 2s..."
-    sleep 2
-done
-echo "       -> PostgreSQL is ready."
+sleep 15 # Wait for DB to be ready
 
 # 3. Initialize Conjur
 echo "[3/4] Initializing Conjur and loading policy..."
@@ -120,21 +105,12 @@ docker run --rm -i --network conjur-demo_conjur \
 export WORKLOAD_A_API_KEY=$(grep -A 1 '"id": "demo:host:demo/workload-a"' policy/policy_data.json | grep api_key | awk -F'"' '{print $4}')
 export WORKLOAD_B_API_KEY=$(grep -A 1 '"id": "demo:host:demo/workload-b"' policy/policy_data.json | grep api_key | awk -F'"' '{print $4}')
 
-# Scrub policy_data.json so freshly generated keys are never committed to Git
-# (keys are already captured in environment variables above)
-cat > policy/policy_data.json << 'EOF'
-{
-  "note": "This file is generated at runtime by init.sh and is intentionally not committed.",
-  "created_roles": {}
-}
-EOF
-
-# 4. Start the workloads
+# 4. Start the workloads and CA signer
 echo "[4/4] Building and starting Workloads..."
 echo "       -> This step launches the client (Workload A) and server (Workload B)."
 echo "       -> Both workloads use a sidecar to independently generate a private key and CSR."
 echo "       -> The sidecars authenticate with Conjur and receive signed X.509 certificates."
-docker-compose up -d --build workload-a workload-b dashboard
+docker-compose up -d --build workload-a workload-b
 
 echo ""
 echo "=========================================================="

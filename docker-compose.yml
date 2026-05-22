@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   database:
     image: postgres:14
@@ -13,7 +11,7 @@ services:
       - conjur
 
   conjur:
-    image: cyberark/conjur:latest
+    image: cyberark/conjur:1.18.0
     command: server
     environment:
       DATABASE_URL: postgres://conjur:${CONJUR_DB_PASSWORD:-secret}@database/conjur
@@ -27,6 +25,21 @@ services:
     volumes:
       - ./policy:/policy
 
+  ca-signer:
+    build:
+      context: ./workloads
+      dockerfile: ca-signer/Dockerfile
+    environment:
+      CA_CERT_PATH: /ca/ca.crt
+      CA_KEY_PATH: /ca/ca.key
+      LISTEN_PORT: 8000
+    volumes:
+      - ./certs:/ca:ro
+    networks:
+      - conjur
+    depends_on:
+      - conjur
+
   workload-a:
     build:
       context: ./workloads
@@ -36,14 +49,15 @@ services:
       CONJUR_ACCOUNT: demo
       CONJUR_AUTHN_LOGIN: host/demo/workload-a
       CONJUR_AUTHN_API_KEY: ${WORKLOAD_A_API_KEY}
+      CA_SIGNER_URL: http://ca-signer:8000
     depends_on:
       - conjur
+      - ca-signer
       - workload-b
     networks:
       - conjur
     volumes:
       - ./certs:/ca:ro
-      - workload_a_certs:/certs
 
   workload-b:
     build:
@@ -54,35 +68,16 @@ services:
       CONJUR_ACCOUNT: demo
       CONJUR_AUTHN_LOGIN: host/demo/workload-b
       CONJUR_AUTHN_API_KEY: ${WORKLOAD_B_API_KEY}
+      CA_SIGNER_URL: http://ca-signer:8000
     ports:
       - "8443:8443"
     depends_on:
       - conjur
+      - ca-signer
     networks:
       - conjur
     volumes:
       - ./certs:/ca:ro
-      - workload_b_certs:/certs
-
-  dashboard:
-    build:
-      context: ./dashboard
-      dockerfile: Dockerfile
-    ports:
-      - "5001:5000"
-    depends_on:
-      - workload-a
-      - workload-b
-    networks:
-      - conjur
-    volumes:
-      # Read-only access to CA cert for reference
-      - ./certs:/certs:ro
-      # Read access to workload cert volumes for expiry monitoring
-      - workload_a_certs:/workload_a_certs
-      - workload_b_certs:/workload_b_certs
-      # Docker socket so the dashboard can tail container logs
-      - /var/run/docker.sock:/var/run/docker.sock:ro
 
 networks:
   conjur:

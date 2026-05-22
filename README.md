@@ -56,7 +56,7 @@ Key architectural principles demonstrated:
 ## High‑Level Architecture
 
 ```text
-Workload A ──(CSR)──▶ Conjur ──(Cert)──▶ Workload A
+Workload A ──(CSR)──▶ CA Signer ──(Cert)──▶ Workload A
      │                                   │
      └───────────── mTLS ────────────────┘
                      ▼
@@ -71,7 +71,7 @@ Workload A ──(CSR)──▶ Conjur ──(Cert)──▶ Workload A
    - Locally generates an RSA private key.
    - Generates a Certificate Signing Request (CSR) with the appropriate SPIFFE identity.
    - Authenticates directly with Conjur using its securely provided API Key.
-   - Requests a signed certificate from the Demo Root CA via Conjur's PKI integration.
+   - Requests a signed certificate from the dedicated CA signer service.
    - Saves the signed certificate alongside the private key and then sleeps.
    - Wakes up to automatically renew the certificate before it expires.
 4. **Mutual TLS**: 
