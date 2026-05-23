@@ -1,0 +1,96 @@
+name: Nightly Dependency Updates
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check-and-update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Update Python dependencies
+        run: |
+          pip install pur
+          pur -r dashboard/requirements.txt
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if git diff --quiet; then
+            echo "changes=false" >> $GITHUB_OUTPUT
+            echo "No dependency updates found."
+          else
+            echo "changes=true" >> $GITHUB_OUTPUT
+            echo "Dependency updates found. Proceeding with verification..."
+          fi
+
+      # Only run verification and PR creation if there are changes
+      - name: Set up Docker Buildx
+        if: steps.check_changes.outputs.changes == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Start Stack for Verification
+        if: steps.check_changes.outputs.changes == 'true'
+        run: |
+          # Clean up any potential artifacts
+          rm -rf certs/*
+          # Run initialization script (this builds and starts the containers)
+          bash init.sh
+          
+      - name: Verify mTLS Functionality
+        if: steps.check_changes.outputs.changes == 'true'
+        run: |
+          echo "Waiting for workloads to start up and establish mTLS connection..."
+          # We wait 30 seconds for the sidecar and app to negotiate certificates and start request loop
+          sleep 30
+          
+          # Fetch logs for workload-a and verify success
+          CLIENT_LOGS=$(docker-compose logs workload-a)
+          echo "=== Workload A (Client) Logs ==="
+          echo "$CLIENT_LOGS"
+          echo "================================="
+          
+          if echo "$CLIENT_LOGS" | grep -q "mTLS connection successful"; then
+              echo "Verification Succeeded: mTLS connection was established successfully!"
+          else
+              echo "Verification Failed: mTLS connection was not established."
+              exit 1
+          fi
+
+      - name: Tear Down Stack
+        if: always() && steps.check_changes.outputs.changes == 'true'
+        run: |
+          docker-compose down -v || true
+
+      - name: Create Pull Request
+        if: steps.check_changes.outputs.changes == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore(deps): nightly dependency updates"
+          branch: nightly-deps-update
+          delete-branch: true
+          title: "chore(deps): nightly dependency updates"
+          body: |
+            This automated PR updates the Python dependencies in `dashboard/requirements.txt` to their latest versions.
+            
+            **Verification Results**:
+            - Pinned dependencies upgraded using `pur`.
+            - Built and ran the entire Conjur demo stack on the runner.
+            - Verified that `workload-a` (Client) successfully established a mutual TLS (mTLS) connection with `workload-b` (Server).
+          labels: |
+            dependencies
+            automated-pr
