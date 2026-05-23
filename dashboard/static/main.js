@@ -415,6 +415,109 @@ document.querySelectorAll(".renew-btn").forEach(btn => {
   });
 });
 
+/* ── Config Telemetry ──────────────────────────────────── */
+const POLL_CONFIG_MS = 20_000;
+
+function updateCaTelemetry(ca) {
+  const container = document.getElementById("telemetry-ca-details");
+  if (!container) return;
+  if (!ca) {
+    container.innerHTML = `<p class="loading-placeholder">No Root CA certificate found.</p>`;
+    return;
+  }
+  if (ca.error) {
+    container.innerHTML = `<p class="loading-placeholder" style="color: var(--accent-red)">Error: ${ca.error}</p>`;
+    return;
+  }
+  
+  container.innerHTML = `
+    <div class="telemetry-ca-info">
+      <div class="telemetry-row"><span class="t-key">Subject</span><span class="t-val">${ca.subject || '–'}</span></div>
+      <div class="telemetry-row"><span class="t-key">Issuer</span><span class="t-val">${ca.issuer || '–'}</span></div>
+      <div class="telemetry-row"><span class="t-key">Serial</span><span class="t-val t-mono">${ca.serial || '–'}</span></div>
+      <div class="telemetry-row"><span class="t-key">Valid From</span><span class="t-val">${ca.valid_from || '–'}</span></div>
+      <div class="telemetry-row"><span class="t-key">Valid To</span><span class="t-val">${ca.valid_to || '–'}</span></div>
+      <div class="telemetry-row"><span class="t-key">SANs</span><span class="t-val t-mono">${(ca.sans && ca.sans.length) ? ca.sans.join(" · ") : 'None'}</span></div>
+    </div>
+    <div class="telemetry-pem-container">
+      <span class="t-pem-title">Root CA PEM</span>
+      <pre class="telemetry-pem">${ca.raw_pem || 'No PEM available'}</pre>
+    </div>
+  `;
+}
+
+function updateContainerTelemetry(containers) {
+  const grid = document.getElementById("telemetry-container-grid");
+  if (!grid) return;
+  if (!containers || Object.keys(containers).length === 0) {
+    grid.innerHTML = `<p class="loading-placeholder">No container telemetry available.</p>`;
+    return;
+  }
+  
+  let html = "";
+  const order = ["database", "conjur", "ca-signer", "workload-b", "workload-a"];
+  const sortedKeys = Object.keys(containers).sort((a, b) => {
+    const idxA = order.indexOf(a);
+    const idxB = order.indexOf(b);
+    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+    return a.localeCompare(b);
+  });
+
+  for (const name of sortedKeys) {
+    const info = containers[name];
+    if (info.error) {
+      html += `
+        <div class="tel-container-card error">
+          <div class="tel-card-header">
+            <span class="tel-card-name">${name}</span>
+            <span class="tel-card-badge stopped">Error</span>
+          </div>
+          <p class="tel-card-err-msg">${info.error}</p>
+        </div>
+      `;
+      continue;
+    }
+    
+    const envEntries = Object.entries(info.env || {}).sort((a, b) => a[0].localeCompare(b[0]));
+    let envHtml = "";
+    if (envEntries.length > 0) {
+      envHtml = envEntries.map(([k, v]) => `<div><span class="tel-env-k">${k}</span>=<span class="tel-env-v">${v}</span></div>`).join("");
+    } else {
+      envHtml = `<div class="tel-env-empty">No environment variables loaded</div>`;
+    }
+    
+    html += `
+      <div class="tel-container-card">
+        <div class="tel-card-header">
+          <span class="tel-card-name">${name}</span>
+          <span class="tel-card-ip">${info.ip_address}</span>
+        </div>
+        <div class="tel-card-body">
+          <div class="tel-line"><span class="tel-key">Image</span><span class="tel-val">${info.image || 'N/A'}</span></div>
+          <div class="tel-line"><span class="tel-key">Created</span><span class="tel-val">${info.created || 'N/A'}</span></div>
+          <div class="tel-env-wrapper">
+            <div class="tel-env-title">Configuration Env</div>
+            <div class="tel-env-list">${envHtml}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  
+  grid.innerHTML = html;
+}
+
+async function pollConfig() {
+  try {
+    const res = await fetch("/api/config");
+    const data = await res.json();
+    updateCaTelemetry(data.root_ca);
+    updateContainerTelemetry(data.containers);
+  } catch (err) {
+    console.error("Failed to poll configuration telemetry:", err);
+  }
+}
+
 /* ── Kick everything off ───────────────────────────────── */
 function init() {
   // Tab switching logic
@@ -436,12 +539,32 @@ function init() {
     });
   });
 
+  // Config tab switching logic
+  document.querySelectorAll(".config-tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const tab = btn.dataset.tab;
+      const panel = btn.closest(".config-panel");
+
+      // Deactivate other tabs
+      panel.querySelectorAll(".config-tab-btn").forEach(b => b.classList.remove("active"));
+      panel.querySelectorAll(".config-tab-content").forEach(c => c.classList.remove("active"));
+
+      // Activate selected tab
+      btn.classList.add("active");
+      const contentId = `config-tab-${tab}`;
+      const contentEl = document.getElementById(contentId);
+      if (contentEl) contentEl.classList.add("active");
+    });
+  });
+
   pollStatus();
   pollCerts();
+  pollConfig();
   connectSSE();
 
   setInterval(pollStatus, POLL_STATUS_MS);
   setInterval(pollCerts,  POLL_CERTS_MS);
+  setInterval(pollConfig, POLL_CONFIG_MS);
 }
 
 init();

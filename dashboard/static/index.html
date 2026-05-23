@@ -41,145 +41,173 @@
 
   <main class="main-grid">
 
-    <!-- ── Left: Architecture Visualisation ──────────────────────── -->
-    <section class="panel arch-panel" aria-label="Architecture visualisation">
-      <div class="panel-header">
-        <h2 class="panel-title">Live mTLS Communication</h2>
-        <span class="panel-badge" id="request-counter">0 requests</span>
-      </div>
-
-      <div class="arch-canvas" id="arch-canvas" aria-live="polite">
-        <!-- Conjur node -->
-        <div class="arch-node conjur-node" id="node-conjur">
-          <div class="node-glow conjur-glow"></div>
-          <div class="node-icon">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-              <path d="M16 4L26 9V16C26 21.5 21.5 26.5 16 28C10.5 26.5 6 21.5 6 16V9L16 4Z" fill="url(#grad-conjur)" stroke="rgba(99,102,241,0.5)" stroke-width="1"/>
-              <path d="M12 16L15 19L20 13" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <defs>
-              <linearGradient id="grad-conjur" x1="6" y1="4" x2="26" y2="28">
-                <stop offset="0%" stop-color="#6366f1"/>
-                <stop offset="100%" stop-color="#4f46e5"/>
-              </linearGradient>
-            </defs>
-          </div>
-          <span class="node-label">Conjur</span>
-          <span class="node-sublabel">Policy Engine &amp; CA</span>
-          <div class="node-status-badge" id="conjur-status-badge">–</div>
+    <!-- ── Left column ───────────────────────────────────────────── -->
+    <div class="left-col">
+      <!-- ── Left: Architecture Visualisation ──────────────────────── -->
+      <section class="panel arch-panel" aria-label="Architecture visualisation">
+        <div class="panel-header">
+          <h2 class="panel-title">Live mTLS Communication</h2>
+          <span class="panel-badge" id="request-counter">0 requests</span>
         </div>
 
-        <!-- CA arrows (top) -->
-        <div class="arch-ca-row">
-          <div class="ca-arrow ca-arrow-left">
-            <div class="arrow-label">CSR + Sign</div>
-            <div class="arrow-line">
-              <div class="arrow-pulse" id="pulse-ca-a"></div>
-            </div>
-          </div>
-          <div class="ca-arrow ca-arrow-right">
-            <div class="arrow-label">CSR + Sign</div>
-            <div class="arrow-line">
-              <div class="arrow-pulse" id="pulse-ca-b"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Workload row -->
-        <div class="arch-workload-row">
-          <!-- Workload A -->
-          <div class="arch-node workload-node" id="node-workload-a">
-            <div class="node-glow workload-glow"></div>
+        <div class="arch-canvas" id="arch-canvas" aria-live="polite">
+          <!-- Conjur node -->
+          <div class="arch-node conjur-node" id="node-conjur">
+            <div class="node-glow conjur-glow"></div>
             <div class="node-icon">
-              <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-                <rect x="3" y="8" width="22" height="14" rx="3" fill="url(#grad-wa)" stroke="rgba(16,185,129,0.4)" stroke-width="1"/>
-                <rect x="9" y="4" width="10" height="5" rx="1.5" fill="rgba(16,185,129,0.6)"/>
-                <circle cx="9" cy="17" r="2" fill="rgba(255,255,255,0.7)"/>
-                <rect x="13" y="14" width="8" height="1.5" rx="0.75" fill="rgba(255,255,255,0.5)"/>
-                <rect x="13" y="17" width="5" height="1.5" rx="0.75" fill="rgba(255,255,255,0.5)"/>
-                <defs>
-                  <linearGradient id="grad-wa" x1="3" y1="8" x2="25" y2="22">
-                    <stop offset="0%" stop-color="#059669"/>
-                    <stop offset="100%" stop-color="#10b981"/>
-                  </linearGradient>
-                </defs>
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <path d="M16 4L26 9V16C26 21.5 21.5 26.5 16 28C10.5 26.5 6 21.5 6 16V9L16 4Z" fill="url(#grad-conjur)" stroke="rgba(99,102,241,0.5)" stroke-width="1"/>
+                <path d="M12 16L15 19L20 13" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
+              <defs>
+                <linearGradient id="grad-conjur" x1="6" y1="4" x2="26" y2="28">
+                  <stop offset="0%" stop-color="#6366f1"/>
+                  <stop offset="100%" stop-color="#4f46e5"/>
+                </linearGradient>
+              </defs>
             </div>
-            <span class="node-label">Workload A</span>
-            <span class="node-sublabel">mTLS Client</span>
-            <div class="node-status-badge" id="workload-a-status-badge">–</div>
+            <span class="node-label">Conjur</span>
+            <span class="node-sublabel">Policy Engine &amp; CA</span>
+            <div class="node-status-badge" id="conjur-status-badge">–</div>
           </div>
 
-          <!-- mTLS Arrow -->
-          <div class="mtls-arrow-container">
-            <div class="mtls-arrow-label">mTLS</div>
-            <div class="mtls-arrow-track">
-              <div class="mtls-packet" id="mtls-packet-ab" aria-hidden="true"></div>
-              <div class="mtls-arrow-line"></div>
-              <div class="mtls-arrowhead">›</div>
+          <!-- CA arrows (top) -->
+          <div class="arch-ca-row">
+            <div class="ca-arrow ca-arrow-left">
+              <div class="arrow-label">CSR + Sign</div>
+              <div class="arrow-line">
+                <div class="arrow-pulse" id="pulse-ca-a"></div>
+              </div>
             </div>
-            <div class="mtls-arrow-sublabel">Encrypted · Authenticated</div>
+            <div class="ca-arrow ca-arrow-right">
+              <div class="arrow-label">CSR + Sign</div>
+              <div class="arrow-line">
+                <div class="arrow-pulse" id="pulse-ca-b"></div>
+              </div>
+            </div>
           </div>
 
-          <!-- Workload B -->
-          <div class="arch-node workload-node" id="node-workload-b">
-            <div class="node-glow workload-glow"></div>
-            <div class="node-icon">
-              <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-                <rect x="2" y="4" width="24" height="20" rx="3" fill="url(#grad-wb)" stroke="rgba(59,130,246,0.4)" stroke-width="1"/>
-                <rect x="6" y="8" width="16" height="2" rx="1" fill="rgba(255,255,255,0.6)"/>
-                <rect x="6" y="12" width="10" height="1.5" rx="0.75" fill="rgba(255,255,255,0.4)"/>
-                <rect x="6" y="15" width="12" height="1.5" rx="0.75" fill="rgba(255,255,255,0.4)"/>
-                <rect x="6" y="18" width="7" height="1.5" rx="0.75" fill="rgba(255,255,255,0.4)"/>
-                <circle cx="21" cy="19" r="4" fill="rgba(59,130,246,0.8)"/>
-                <path d="M19 19L20.5 20.5L23 18" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-                <defs>
-                  <linearGradient id="grad-wb" x1="2" y1="4" x2="26" y2="24">
-                    <stop offset="0%" stop-color="#1d4ed8"/>
-                    <stop offset="100%" stop-color="#3b82f6"/>
-                  </linearGradient>
-                </defs>
-              </svg>
+          <!-- Workload row -->
+          <div class="arch-workload-row">
+            <!-- Workload A -->
+            <div class="arch-node workload-node" id="node-workload-a">
+              <div class="node-glow workload-glow"></div>
+              <div class="node-icon">
+                <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                  <rect x="3" y="8" width="22" height="14" rx="3" fill="url(#grad-wa)" stroke="rgba(16,185,129,0.4)" stroke-width="1"/>
+                  <rect x="9" y="4" width="10" height="5" rx="1.5" fill="rgba(16,185,129,0.6)"/>
+                  <circle cx="9" cy="17" r="2" fill="rgba(255,255,255,0.7)"/>
+                  <rect x="13" y="14" width="8" height="1.5" rx="0.75" fill="rgba(255,255,255,0.5)"/>
+                  <rect x="13" y="17" width="5" height="1.5" rx="0.75" fill="rgba(255,255,255,0.5)"/>
+                  <defs>
+                    <linearGradient id="grad-wa" x1="3" y1="8" x2="25" y2="22">
+                      <stop offset="0%" stop-color="#059669"/>
+                      <stop offset="100%" stop-color="#10b981"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
+              <span class="node-label">Workload A</span>
+              <span class="node-sublabel">mTLS Client</span>
+              <div class="node-status-badge" id="workload-a-status-badge">–</div>
             </div>
-            <span class="node-label">Workload B</span>
-            <span class="node-sublabel">mTLS Server :8443</span>
-            <div class="node-status-badge" id="workload-b-status-badge">–</div>
+
+            <!-- mTLS Arrow -->
+            <div class="mtls-arrow-container">
+              <div class="mtls-arrow-label">mTLS</div>
+              <div class="mtls-arrow-track">
+                <div class="mtls-packet" id="mtls-packet-ab" aria-hidden="true"></div>
+                <div class="mtls-arrow-line"></div>
+                <div class="mtls-arrowhead">›</div>
+              </div>
+              <div class="mtls-arrow-sublabel">Encrypted · Authenticated</div>
+            </div>
+
+            <!-- Workload B -->
+            <div class="arch-node workload-node" id="node-workload-b">
+              <div class="node-glow workload-glow"></div>
+              <div class="node-icon">
+                <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                  <rect x="2" y="4" width="24" height="20" rx="3" fill="url(#grad-wb)" stroke="rgba(59,130,246,0.4)" stroke-width="1"/>
+                  <rect x="6" y="8" width="16" height="2" rx="1" fill="rgba(255,255,255,0.6)"/>
+                  <rect x="6" y="12" width="10" height="1.5" rx="0.75" fill="rgba(255,255,255,0.4)"/>
+                  <rect x="6" y="15" width="12" height="1.5" rx="0.75" fill="rgba(255,255,255,0.4)"/>
+                  <rect x="6" y="18" width="7" height="1.5" rx="0.75" fill="rgba(255,255,255,0.4)"/>
+                  <circle cx="21" cy="19" r="4" fill="rgba(59,130,246,0.8)"/>
+                  <path d="M19 19L20.5 20.5L23 18" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <defs>
+                    <linearGradient id="grad-wb" x1="2" y1="4" x2="26" y2="24">
+                      <stop offset="0%" stop-color="#1d4ed8"/>
+                      <stop offset="100%" stop-color="#3b82f6"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
+              <span class="node-label">Workload B</span>
+              <span class="node-sublabel">mTLS Server :8443</span>
+              <div class="node-status-badge" id="workload-b-status-badge">–</div>
+            </div>
+          </div>
+
+          <!-- Legend -->
+          <div class="arch-legend">
+            <span class="legend-item"><span class="legend-dot legend-conjur"></span>Conjur PKI</span>
+            <span class="legend-item"><span class="legend-dot legend-client"></span>Client</span>
+            <span class="legend-item"><span class="legend-dot legend-server"></span>Server</span>
+            <span class="legend-item"><span class="legend-dot legend-mtls"></span>mTLS Handshake</span>
+          </div>
+
+          <!-- System Status Grid -->
+          <div class="system-status-grid">
+            <div class="status-card" id="status-card-db">
+              <span class="status-card-dot" id="status-dot-database"></span>
+              <span class="status-card-label">Database</span>
+            </div>
+            <div class="status-card" id="status-card-conjur">
+              <span class="status-card-dot" id="status-dot-conjur"></span>
+              <span class="status-card-label">Conjur Engine</span>
+            </div>
+            <div class="status-card" id="status-card-signer">
+              <span class="status-card-dot" id="status-dot-ca-signer"></span>
+              <span class="status-card-label">CA Signer</span>
+            </div>
+            <div class="status-card" id="status-card-wa">
+              <span class="status-card-dot" id="status-dot-workload-a"></span>
+              <span class="status-card-label">Workload A</span>
+            </div>
+            <div class="status-card" id="status-card-wb">
+              <span class="status-card-dot" id="status-dot-workload-b"></span>
+              <span class="status-card-label">Workload B</span>
+            </div>
           </div>
         </div>
+      </section>
 
-        <!-- Legend -->
-        <div class="arch-legend">
-          <span class="legend-item"><span class="legend-dot legend-conjur"></span>Conjur PKI</span>
-          <span class="legend-item"><span class="legend-dot legend-client"></span>Client</span>
-          <span class="legend-item"><span class="legend-dot legend-server"></span>Server</span>
-          <span class="legend-item"><span class="legend-dot legend-mtls"></span>mTLS Handshake</span>
-        </div>
-
-        <!-- System Status Grid -->
-        <div class="system-status-grid">
-          <div class="status-card" id="status-card-db">
-            <span class="status-card-dot" id="status-dot-database"></span>
-            <span class="status-card-label">Database</span>
-          </div>
-          <div class="status-card" id="status-card-conjur">
-            <span class="status-card-dot" id="status-dot-conjur"></span>
-            <span class="status-card-label">Conjur Engine</span>
-          </div>
-          <div class="status-card" id="status-card-signer">
-            <span class="status-card-dot" id="status-dot-ca-signer"></span>
-            <span class="status-card-label">CA Signer</span>
-          </div>
-          <div class="status-card" id="status-card-wa">
-            <span class="status-card-dot" id="status-dot-workload-a"></span>
-            <span class="status-card-label">Workload A</span>
-          </div>
-          <div class="status-card" id="status-card-wb">
-            <span class="status-card-dot" id="status-dot-workload-b"></span>
-            <span class="status-card-label">Workload B</span>
+      <!-- ── Telemetry & Config Panel ────────────────────────── -->
+      <section class="panel config-panel" aria-label="System configuration & telemetry">
+        <div class="panel-header">
+          <h2 class="panel-title">System Telemetry &amp; Config</h2>
+          <div class="config-tabs">
+            <button class="config-tab-btn active" data-tab="containers">Containers</button>
+            <button class="config-tab-btn" data-tab="ca">Root CA</button>
           </div>
         </div>
-      </div>
-    </section>
+        <div class="panel-body config-body">
+          <!-- Containers Tab Content -->
+          <div class="config-tab-content active" id="config-tab-containers">
+            <div class="telemetry-grid" id="telemetry-container-grid">
+              <p class="loading-placeholder">Loading container telemetry...</p>
+            </div>
+          </div>
+          <!-- Root CA Tab Content -->
+          <div class="config-tab-content" id="config-tab-ca">
+            <div class="ca-telemetry-details" id="telemetry-ca-details">
+              <p class="loading-placeholder">Loading Root CA details...</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
 
     <!-- ── Right column ───────────────────────────────────────────── -->
     <div class="right-col">

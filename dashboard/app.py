@@ -175,6 +175,58 @@ def api_certs():
     })
 
 
+@app.route("/api/config")
+def api_config():
+    ca_cert_info = parse_cert(CA_CERT)
+    container_telemetry = {}
+    
+    if docker_client:
+        for cname in CONTAINERS:
+            alias = CONTAINER_ALIASES.get(cname, cname)
+            try:
+                try:
+                    container = docker_client.containers.get(cname)
+                except docker.errors.NotFound:
+                    container = docker_client.containers.get(alias)
+                
+                attrs = container.attrs
+                
+                # Extract IP Address
+                ip_address = None
+                networks = attrs.get("NetworkSettings", {}).get("Networks", {})
+                for net_name, net_info in networks.items():
+                    ip_address = net_info.get("IPAddress")
+                    if ip_address:
+                        break
+                
+                # Extract safe environment variables
+                env_list = attrs.get("Config", {}).get("Env", [])
+                env_vars = {}
+                for env in env_list:
+                    if "=" in env:
+                        k, v = env.split("=", 1)
+                        if any(secret in k.lower() for secret in ["key", "password", "secret", "token"]):
+                            env_vars[k] = "********"
+                        else:
+                            env_vars[k] = v
+                
+                container_telemetry[alias] = {
+                    "image": attrs.get("Config", {}).get("Image"),
+                    "ip_address": ip_address or "N/A",
+                    "env": env_vars,
+                    "created": attrs.get("Created", "")[:19].replace("T", " "),
+                }
+            except Exception as e:
+                container_telemetry[alias] = {
+                    "error": str(e)
+                }
+                
+    return jsonify({
+        "root_ca": ca_cert_info,
+        "containers": container_telemetry
+    })
+
+
 @app.route("/api/renew/<workload>", methods=["POST"])
 def api_renew(workload):
     cert_path = WORKLOAD_A_CERT if workload == "workload-a" else WORKLOAD_B_CERT if workload == "workload-b" else None
