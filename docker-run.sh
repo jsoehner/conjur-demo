@@ -3,9 +3,6 @@ set -e
 
 echo "=== Conjur Demo Docker Run Script ==="
 
-# 0. Docker Hub Username Resolution
-DOCKER_USERNAME="${1:-${DOCKER_USERNAME:-$REGISTRY_OWNER}}"
-
 # Check if cleanup is requested
 if [ "$1" = "down" ] || [ "$1" = "stop" ] || [ "$2" = "down" ] || [ "$2" = "stop" ]; then
     echo "=== Tearing down Conjur Demo Stack ==="
@@ -17,6 +14,9 @@ if [ "$1" = "down" ] || [ "$1" = "stop" ] || [ "$2" = "down" ] || [ "$2" = "stop
     echo "Cleaned up all containers, volumes, networks, and certificates."
     exit 0
 fi
+
+# 0. Docker Hub Username Resolution (defaulting to jsoehner)
+DOCKER_USERNAME="${1:-${DOCKER_USERNAME:-${REGISTRY_OWNER:-jsoehner}}}"
 
 # If username is still not resolved and stdout is a tty, prompt for it
 if [ -z "$DOCKER_USERNAME" ]; then
@@ -32,7 +32,15 @@ if [ -z "$DOCKER_USERNAME" ]; then
     exit 1
 fi
 
-# 1. Cleanup previous state
+# 1. Platform/Architecture Detection
+# Detect if the host is running ARM64 (like Apple Silicon macOS) and enforce --platform linux/amd64 emulation.
+PLATFORM_FLAG=""
+if [ "$(uname -m)" = "arm64" ] || [ "$(uname -m)" = "aarch64" ]; then
+    PLATFORM_FLAG="--platform linux/amd64"
+    echo "       -> ARM64 architecture detected. Enabling '$PLATFORM_FLAG' emulation for registry images."
+fi
+
+# 2. Cleanup previous state
 echo "[0/4] Cleaning up previous state..."
 docker stop dashboard workload-a workload-b ca-signer conjur database 2>/dev/null || true
 docker rm dashboard workload-a workload-b ca-signer conjur database 2>/dev/null || true
@@ -102,7 +110,7 @@ for IMG in \
     "${DOCKER_USERNAME}/conjur-demo-workload-b:latest" \
     "${DOCKER_USERNAME}/conjur-demo-dashboard:latest"; do
     echo "       -> Pulling $IMG..."
-    docker pull "$IMG"
+    docker pull $PLATFORM_FLAG "$IMG"
 done
 
 # 4. Generate a CA for the demo
@@ -114,12 +122,12 @@ openssl req -x509 -new -nodes -key certs/ca.key -sha256 -days 3650 -out certs/ca
 chmod 644 certs/ca.key certs/ca.crt
 
 # 5. Export variables
-export CONJUR_DATA_KEY="$(docker run --rm cyberark/conjur:latest data-key generate)"
+export CONJUR_DATA_KEY="$(docker run --rm $PLATFORM_FLAG cyberark/conjur:latest data-key generate)"
 export CONJUR_DB_PASSWORD="demo_password123"
 
 # 6. Start the database and Conjur
 echo "[2/4] Starting Conjur Infrastructure (Database & Conjur)..."
-docker run -d \
+docker run -d $PLATFORM_FLAG \
   --name database \
   --network conjur-demo_conjur \
   -e POSTGRES_DB=conjur \
@@ -128,7 +136,7 @@ docker run -d \
   -v database_data:/var/lib/postgresql/data \
   postgres:14
 
-docker run -d \
+docker run -d $PLATFORM_FLAG \
   --name conjur \
   --network conjur-demo_conjur \
   -p 8080:80 \
@@ -147,7 +155,7 @@ API_KEY=$(grep "API key for admin" admin_data.txt | awk '{print $5}')
 rm -f admin_data.txt
 
 # Run the CLI container to load the policy
-docker run --rm -i --network conjur-demo_conjur \
+docker run --rm -i $PLATFORM_FLAG --network conjur-demo_conjur \
   -e CONJUR_APPLIANCE_URL=http://conjur:80 \
   -e CONJUR_ACCOUNT=demo \
   -v "$(pwd)/policy:/policy" \
@@ -165,7 +173,7 @@ fi
 # 8. Start the workloads and CA signer
 echo "[4/4] Starting CA Signer, Workloads, and Dashboard..."
 
-docker run -d \
+docker run -d $PLATFORM_FLAG \
   --name ca-signer \
   --network conjur-demo_conjur \
   -e CA_CERT_PATH=/ca/ca.crt \
@@ -174,7 +182,7 @@ docker run -d \
   -v "$(pwd)/certs:/ca:ro" \
   "${DOCKER_USERNAME}/conjur-demo-ca-signer:latest"
 
-docker run -d \
+docker run -d $PLATFORM_FLAG \
   --name workload-b \
   --network conjur-demo_conjur \
   -p 8443:8443 \
@@ -187,7 +195,7 @@ docker run -d \
   -v workload_b_certs:/certs \
   "${DOCKER_USERNAME}/conjur-demo-workload-b:latest"
 
-docker run -d \
+docker run -d $PLATFORM_FLAG \
   --name workload-a \
   --network conjur-demo_conjur \
   -e CONJUR_APPLIANCE_URL=http://conjur:80 \
@@ -199,7 +207,7 @@ docker run -d \
   -v workload_a_certs:/certs \
   "${DOCKER_USERNAME}/conjur-demo-workload-a:latest"
 
-docker run -d \
+docker run -d $PLATFORM_FLAG \
   --name dashboard \
   --network conjur-demo_conjur \
   -p 5001:5000 \
