@@ -183,35 +183,6 @@
         </div>
       </section>
 
-      <!-- ── Telemetry & Config Panel ────────────────────────── -->
-      <section class="panel config-panel" aria-label="System configuration & telemetry">
-        <div class="panel-header">
-          <h2 class="panel-title">System Telemetry &amp; Config</h2>
-          <div class="config-tabs">
-            <button class="config-tab-btn active" data-tab="containers">Containers</button>
-            <button class="config-tab-btn" data-tab="ca">Root CA</button>
-          </div>
-        </div>
-        <div class="panel-body config-body">
-          <!-- Containers Tab Content -->
-          <div class="config-tab-content active" id="config-tab-containers">
-            <div class="telemetry-grid" id="telemetry-container-grid">
-              <p class="loading-placeholder">Loading container telemetry...</p>
-            </div>
-          </div>
-          <!-- Root CA Tab Content -->
-          <div class="config-tab-content" id="config-tab-ca">
-            <div class="ca-telemetry-details" id="telemetry-ca-details">
-              <p class="loading-placeholder">Loading Root CA details...</p>
-            </div>
-          </div>
-        </div>
-      </section>
-    </div>
-
-    <!-- ── Right column ───────────────────────────────────────────── -->
-    <div class="right-col">
-
       <!-- Cert cards row -->
       <div class="cert-row">
         <!-- Cert A -->
@@ -302,6 +273,35 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- ── Right column ───────────────────────────────────────────── -->
+    <div class="right-col">
+
+      <!-- ── Telemetry & Config Panel ────────────────────────── -->
+      <section class="panel config-panel" aria-label="System configuration & telemetry">
+        <div class="panel-header">
+          <h2 class="panel-title">System Telemetry &amp; Config</h2>
+          <div class="config-tabs">
+            <button class="config-tab-btn active" data-tab="containers">Containers</button>
+            <button class="config-tab-btn" data-tab="ca">Root CA</button>
+          </div>
+        </div>
+        <div class="panel-body config-body">
+          <!-- Containers Tab Content -->
+          <div class="config-tab-content active" id="config-tab-containers">
+            <div class="telemetry-grid" id="telemetry-container-grid">
+              <p class="loading-placeholder">Loading container telemetry...</p>
+            </div>
+          </div>
+          <!-- Root CA Tab Content -->
+          <div class="config-tab-content" id="config-tab-ca">
+            <div class="ca-telemetry-details" id="telemetry-ca-details">
+              <p class="loading-placeholder">Loading Root CA details...</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <!-- Activity Log -->
       <div class="panel log-panel" aria-label="Live activity log">
