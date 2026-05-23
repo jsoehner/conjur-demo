@@ -64,6 +64,7 @@ generate_and_sign() {
     fi
 
     mv "$TEMP_CERT" "$CERT_FILE"
+    mv "$KEY_FILE.tmp" "$KEY_FILE"
     chmod 644 "$CERT_FILE"
 
     echo "[Sidecar] Certificate received and saved to $CERT_FILE"
@@ -82,10 +83,18 @@ generate_and_sign() {
     return 0
 }
 
-# Initial Issuance — exit hard if this fails (no cert = nothing to do)
-set -e
-generate_and_sign
-set +e
+# Initial Issuance — retry on startup issues before giving up
+MAX_RETRIES=10
+RETRY_COUNT=0
+until generate_and_sign; do
+    RETRY_COUNT=$((RETRY_COUNT + 1))
+    if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+        echo "[Sidecar] ERROR: Initial certificate issuance failed after $MAX_RETRIES attempts. Exiting."
+        exit 1
+    fi
+    echo "[Sidecar] CA signer or Conjur not ready. Retrying initial issuance in 3 seconds ($RETRY_COUNT/$MAX_RETRIES)..."
+    sleep 3
+done
 
 # Auto-renewal loop — errors are logged and retried next cycle, never fatal.
 while true; do
@@ -94,7 +103,7 @@ while true; do
 
     # BUG FIX: Use 'openssl x509 -checkend' to test expiry within the threshold.
     # This avoids brittle 'date -d' parsing and is portable across GNU/BusyBox.
-    if ! openssl x509 -checkend $RENEWAL_THRESHOLD_SECONDS -noout -in "$CERT_FILE" 2>/dev/null; then
+    if ! openssl x509 -checkend $RENEWAL_THRESHOLD_SECONDS -noout -in "$CERT_FILE" >/dev/null 2>/dev/null; then
         echo "[Sidecar] Certificate will expire within ${RENEWAL_THRESHOLD_SECONDS}s. Renewing..."
         if generate_and_sign; then
             echo "[Sidecar] Renewal SUCCESS."

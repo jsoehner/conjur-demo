@@ -110,7 +110,7 @@ echo "[4/4] Building and starting Workloads..."
 echo "       -> This step launches the client (Workload A) and server (Workload B)."
 echo "       -> Both workloads use a sidecar to independently generate a private key and CSR."
 echo "       -> The sidecars authenticate with Conjur and receive signed X.509 certificates."
-docker-compose up -d --build workload-a workload-b
+docker-compose up -d --build workload-a workload-b dashboard
 
 echo ""
 echo "=========================================================="

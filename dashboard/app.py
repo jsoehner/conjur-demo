@@ -31,11 +31,19 @@ CA_CERT = os.path.join(CERT_DIR, "ca.crt")
 WORKLOAD_A_CERT = "/workload_a_certs/tls.crt"
 WORKLOAD_B_CERT = "/workload_b_certs/tls.crt"
 
-CONTAINERS = ["conjur-demo-workload-a-1", "conjur-demo-workload-b-1", "conjur-demo-conjur-1"]
+CONTAINERS = [
+    "conjur-demo-workload-a-1",
+    "conjur-demo-workload-b-1",
+    "conjur-demo-conjur-1",
+    "conjur-demo-ca-signer-1",
+    "conjur-demo-database-1"
+]
 CONTAINER_ALIASES = {
     "conjur-demo-workload-a-1": "workload-a",
     "conjur-demo-workload-b-1": "workload-b",
     "conjur-demo-conjur-1": "conjur",
+    "conjur-demo-ca-signer-1": "ca-signer",
+    "conjur-demo-database-1": "database",
 }
 
 # ---------------------------------------------------------------------------
@@ -56,14 +64,13 @@ def parse_cert(cert_path):
         serial  = run(["openssl", "x509", "-in", cert_path, "-noout", "-serial"])
         san_raw = run(["openssl", "x509", "-in", cert_path, "-noout", "-ext", "subjectAltName"])
 
-        # Parse expiry epoch
+        # Parse expiry epoch using Python's native datetime
         end_val = end.split("=", 1)[1] if "=" in end else end
         try:
-            # Try GNU date first, fall back to openssl checkend
-            exp_epoch = int(subprocess.run(
-                ["date", "-d", end_val, "+%s"],
-                capture_output=True, text=True, timeout=5
-            ).stdout.strip())
+            clean_end = end_val.replace("GMT", "").replace("UTC", "").strip()
+            clean_end = " ".join(clean_end.split())
+            dt = datetime.strptime(clean_end, "%b %d %H:%M:%S %Y").replace(tzinfo=timezone.utc)
+            exp_epoch = int(dt.timestamp())
         except Exception:
             exp_epoch = None
 
@@ -94,6 +101,15 @@ def parse_cert(cert_path):
                     if part:
                         sans.append(part)
 
+        # Decode certificate details
+        parsed_text = run(["openssl", "x509", "-in", cert_path, "-text", "-noout"])
+
+        # Read raw PEM
+        try:
+            raw_pem = run(["openssl", "x509", "-in", cert_path])
+        except Exception:
+            raw_pem = "Unable to read certificate file"
+
         def clean(s, prefix):
             return s.split("=", 1)[1].strip() if "=" in s else s
 
@@ -108,6 +124,8 @@ def parse_cert(cert_path):
             "hours_remaining": hours_left,
             "pct_remaining": pct_remaining,
             "renewal_status": renewal_status,
+            "raw_pem": raw_pem,
+            "parsed_text": parsed_text,
         }
     except Exception as e:
         return {"error": str(e)}

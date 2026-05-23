@@ -38,6 +38,13 @@ const els = {
   waBadge:       $("workload-a-status-badge"),
   wbBadge:       $("workload-b-status-badge"),
 
+  // System status dots
+  dotDatabase:   $("status-dot-database"),
+  dotConjur:     $("status-dot-conjur"),
+  dotCaSigner:   $("status-dot-ca-signer"),
+  dotWorkloadA:  $("status-dot-workload-a"),
+  dotWorkloadB:  $("status-dot-workload-b"),
+
   // Cert A
   certAStatus:   $("cert-a-status"),
   certABar:      $("cert-a-bar"),
@@ -123,6 +130,12 @@ function setGlobalStatus(statuses) {
   }
 }
 
+/* ── Node status dot helper ────────────────────────────── */
+function applyStatusDot(el, status) {
+  if (!el) return;
+  el.className = "status-card-dot " + (status === "running" ? "running" : (status === "exited" || status === "not found" || status === "error" ? "stopped" : "unknown"));
+}
+
 /* ── Poll /api/status ──────────────────────────────────── */
 async function pollStatus() {
   try {
@@ -132,6 +145,13 @@ async function pollStatus() {
     applyStatus(els.conjurBadge, data["conjur"]     ?? "unknown");
     applyStatus(els.waBadge,     data["workload-a"] ?? "unknown");
     applyStatus(els.wbBadge,     data["workload-b"] ?? "unknown");
+
+    applyStatusDot(els.dotDatabase,  data["database"]   ?? "unknown");
+    applyStatusDot(els.dotConjur,    data["conjur"]     ?? "unknown");
+    applyStatusDot(els.dotCaSigner,  data["ca-signer"]  ?? "unknown");
+    applyStatusDot(els.dotWorkloadA, data["workload-a"] ?? "unknown");
+    applyStatusDot(els.dotWorkloadB, data["workload-b"] ?? "unknown");
+
     setGlobalStatus(data);
   } catch {
     els.globalDot.className = "status-dot offline";
@@ -166,16 +186,23 @@ function applyCertCard(prefix, certData) {
   const elSerial  = els[`cert${prefix}Serial`];
   const elExpires = els[`cert${prefix}Expires`];
 
+  const elDecoded = $(`cert-${prefix.toLowerCase()}-decoded-val`);
+  const elPem     = $(`cert-${prefix.toLowerCase()}-pem-val`);
+
   if (!certData) {
     elStatus.textContent = "loading";
     elStatus.className   = "cert-status-pill loading";
     elTime.textContent   = "Waiting for sidecar…";
+    if (elDecoded) elDecoded.textContent = "Loading decoded certificate info...";
+    if (elPem)     elPem.textContent = "Loading PEM certificate...";
     return;
   }
   if (certData.error) {
     elStatus.textContent = "error";
     elStatus.className   = "cert-status-pill expired";
     elTime.textContent   = certData.error;
+    if (elDecoded) elDecoded.textContent = certData.error;
+    if (elPem)     elPem.textContent = certData.error;
     return;
   }
 
@@ -194,6 +221,9 @@ function applyCertCard(prefix, certData) {
   elSan.textContent     = formatSans(certData.sans);
   elSerial.textContent  = certData.serial    ?? "–";
   elExpires.textContent = certData.valid_to  ?? "–";
+
+  if (elDecoded) elDecoded.textContent = certData.parsed_text ?? "No decoded info available";
+  if (elPem)     elPem.textContent = certData.raw_pem     ?? "No PEM available";
 }
 
 /* ── Poll /api/certs ───────────────────────────────────── */
@@ -387,6 +417,25 @@ document.querySelectorAll(".renew-btn").forEach(btn => {
 
 /* ── Kick everything off ───────────────────────────────── */
 function init() {
+  // Tab switching logic
+  document.querySelectorAll(".cert-tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const tab = btn.dataset.tab;
+      const workload = btn.dataset.workload; // 'a' or 'b'
+      const card = btn.closest(".cert-card");
+
+      // Deactivate other tabs in this card
+      card.querySelectorAll(".cert-tab-btn").forEach(b => b.classList.remove("active"));
+      card.querySelectorAll(".cert-tab-content").forEach(c => c.classList.remove("active"));
+
+      // Activate selected tab
+      btn.classList.add("active");
+      const contentId = `cert-${workload}-tab-${tab}`;
+      const contentEl = document.getElementById(contentId);
+      if (contentEl) contentEl.classList.add("active");
+    });
+  });
+
   pollStatus();
   pollCerts();
   connectSSE();

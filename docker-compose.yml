@@ -11,7 +11,7 @@ services:
       - conjur
 
   conjur:
-    image: cyberark/conjur:1.18.0
+    image: cyberark/conjur:latest
     command: server
     environment:
       DATABASE_URL: postgres://conjur:${CONJUR_DB_PASSWORD:-secret}@database/conjur
@@ -58,6 +58,7 @@ services:
       - conjur
     volumes:
       - ./certs:/ca:ro
+      - workload_a_certs:/certs
 
   workload-b:
     build:
@@ -78,6 +79,23 @@ services:
       - conjur
     volumes:
       - ./certs:/ca:ro
+      - workload_b_certs:/certs
+
+  dashboard:
+    build:
+      context: ./dashboard
+    ports:
+      - "5001:5000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - workload_a_certs:/workload_a_certs
+      - workload_b_certs:/workload_b_certs
+      - ./certs:/certs:ro
+    depends_on:
+      - workload-a
+      - workload-b
+    networks:
+      - conjur
 
 networks:
   conjur:

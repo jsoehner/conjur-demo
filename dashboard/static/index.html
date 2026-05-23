@@ -154,6 +154,30 @@
           <span class="legend-item"><span class="legend-dot legend-server"></span>Server</span>
           <span class="legend-item"><span class="legend-dot legend-mtls"></span>mTLS Handshake</span>
         </div>
+
+        <!-- System Status Grid -->
+        <div class="system-status-grid">
+          <div class="status-card" id="status-card-db">
+            <span class="status-card-dot" id="status-dot-database"></span>
+            <span class="status-card-label">Database</span>
+          </div>
+          <div class="status-card" id="status-card-conjur">
+            <span class="status-card-dot" id="status-dot-conjur"></span>
+            <span class="status-card-label">Conjur Engine</span>
+          </div>
+          <div class="status-card" id="status-card-signer">
+            <span class="status-card-dot" id="status-dot-ca-signer"></span>
+            <span class="status-card-label">CA Signer</span>
+          </div>
+          <div class="status-card" id="status-card-wa">
+            <span class="status-card-dot" id="status-dot-workload-a"></span>
+            <span class="status-card-label">Workload A</span>
+          </div>
+          <div class="status-card" id="status-card-wb">
+            <span class="status-card-dot" id="status-dot-workload-b"></span>
+            <span class="status-card-label">Workload B</span>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -171,16 +195,38 @@
               <span class="cert-status-pill" id="cert-a-status">–</span>
             </div>
           </div>
+
+          <!-- Tabs -->
+          <div class="cert-tabs">
+            <button class="cert-tab-btn active" data-tab="attrs" data-workload="a">Attributes</button>
+            <button class="cert-tab-btn" data-tab="decoded" data-workload="a">Decoded Payload</button>
+            <button class="cert-tab-btn" data-tab="pem" data-workload="a">PEM</button>
+          </div>
+
           <div class="cert-expiry-bar-wrap">
             <div class="cert-expiry-bar" id="cert-a-bar"></div>
           </div>
           <div class="cert-time-left" id="cert-a-time">–</div>
-          <div class="cert-details" id="cert-a-details">
-            <div class="cert-row-detail"><span class="cert-key">Subject</span><span class="cert-val" id="cert-a-subject">–</span></div>
-            <div class="cert-row-detail"><span class="cert-key">Issuer</span><span class="cert-val" id="cert-a-issuer">–</span></div>
-            <div class="cert-row-detail"><span class="cert-key">SAN</span><span class="cert-val cert-mono" id="cert-a-san">–</span></div>
-            <div class="cert-row-detail"><span class="cert-key">Serial</span><span class="cert-val cert-mono" id="cert-a-serial">–</span></div>
-            <div class="cert-row-detail"><span class="cert-key">Expires</span><span class="cert-val" id="cert-a-expires">–</span></div>
+
+          <!-- Tab: Attributes -->
+          <div class="cert-tab-content active" id="cert-a-tab-attrs">
+            <div class="cert-details" id="cert-a-details">
+              <div class="cert-row-detail"><span class="cert-key">Subject</span><span class="cert-val" id="cert-a-subject">–</span></div>
+              <div class="cert-row-detail"><span class="cert-key">Issuer</span><span class="cert-val" id="cert-a-issuer">–</span></div>
+              <div class="cert-row-detail"><span class="cert-key">SAN</span><span class="cert-val cert-mono" id="cert-a-san">–</span></div>
+              <div class="cert-row-detail"><span class="cert-key">Serial</span><span class="cert-val cert-mono" id="cert-a-serial">–</span></div>
+              <div class="cert-row-detail"><span class="cert-key">Expires</span><span class="cert-val" id="cert-a-expires">–</span></div>
+            </div>
+          </div>
+
+          <!-- Tab: Decoded -->
+          <div class="cert-tab-content" id="cert-a-tab-decoded">
+            <pre class="cert-raw-block" id="cert-a-decoded-val">Loading decoded certificate info...</pre>
+          </div>
+
+          <!-- Tab: PEM -->
+          <div class="cert-tab-content" id="cert-a-tab-pem">
+            <pre class="cert-raw-block cert-mono" id="cert-a-pem-val">Loading PEM certificate...</pre>
           </div>
         </div>
 
@@ -193,16 +239,38 @@
               <span class="cert-status-pill" id="cert-b-status">–</span>
             </div>
           </div>
+
+          <!-- Tabs -->
+          <div class="cert-tabs">
+            <button class="cert-tab-btn active" data-tab="attrs" data-workload="b">Attributes</button>
+            <button class="cert-tab-btn" data-tab="decoded" data-workload="b">Decoded Payload</button>
+            <button class="cert-tab-btn" data-tab="pem" data-workload="b">PEM</button>
+          </div>
+
           <div class="cert-expiry-bar-wrap">
             <div class="cert-expiry-bar" id="cert-b-bar"></div>
           </div>
           <div class="cert-time-left" id="cert-b-time">–</div>
-          <div class="cert-details" id="cert-b-details">
-            <div class="cert-row-detail"><span class="cert-key">Subject</span><span class="cert-val" id="cert-b-subject">–</span></div>
-            <div class="cert-row-detail"><span class="cert-key">Issuer</span><span class="cert-val" id="cert-b-issuer">–</span></div>
-            <div class="cert-row-detail"><span class="cert-key">SAN</span><span class="cert-val cert-mono" id="cert-b-san">–</span></div>
-            <div class="cert-row-detail"><span class="cert-key">Serial</span><span class="cert-val cert-mono" id="cert-b-serial">–</span></div>
-            <div class="cert-row-detail"><span class="cert-key">Expires</span><span class="cert-val" id="cert-b-expires">–</span></div>
+
+          <!-- Tab: Attributes -->
+          <div class="cert-tab-content active" id="cert-b-tab-attrs">
+            <div class="cert-details" id="cert-b-details">
+              <div class="cert-row-detail"><span class="cert-key">Subject</span><span class="cert-val" id="cert-b-subject">–</span></div>
+              <div class="cert-row-detail"><span class="cert-key">Issuer</span><span class="cert-val" id="cert-b-issuer">–</span></div>
+              <div class="cert-row-detail"><span class="cert-key">SAN</span><span class="cert-val cert-mono" id="cert-b-san">–</span></div>
+              <div class="cert-row-detail"><span class="cert-key">Serial</span><span class="cert-val cert-mono" id="cert-b-serial">–</span></div>
+              <div class="cert-row-detail"><span class="cert-key">Expires</span><span class="cert-val" id="cert-b-expires">–</span></div>
+            </div>
+          </div>
+
+          <!-- Tab: Decoded -->
+          <div class="cert-tab-content" id="cert-b-tab-decoded">
+            <pre class="cert-raw-block" id="cert-b-decoded-val">Loading decoded certificate info...</pre>
+          </div>
+
+          <!-- Tab: PEM -->
+          <div class="cert-tab-content" id="cert-b-tab-pem">
+            <pre class="cert-raw-block cert-mono" id="cert-b-pem-val">Loading PEM certificate...</pre>
           </div>
         </div>
       </div>

@@ -1,4 +1,13 @@
 {
-  "note": "This file is generated at runtime by init.sh and is intentionally not committed.",
-  "created_roles": {}
+  "created_roles": {
+    "demo:host:demo/workload-a": {
+      "id": "demo:host:demo/workload-a",
+      "api_key": "1vv10fy1dty6dj3zdzbcv1s60vz43j19aq72g9fkvw17y74911egdjw1"
+    },
+    "demo:host:demo/workload-b": {
+      "id": "demo:host:demo/workload-b",
+      "api_key": "31msj9b33fvwke29gyxqg1pxkrxq3h61xf41y8253e24jm95218qdxym"
+    }
+  },
+  "version": 1
 }
