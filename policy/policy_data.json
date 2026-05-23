@@ -2,11 +2,11 @@
   "created_roles": {
     "demo:host:demo/workload-a": {
       "id": "demo:host:demo/workload-a",
-      "api_key": "1j796j12e9dad2d8n8a3mpjfsa3fnnf602a04m0e1ktjxgt1d2hfsf"
+      "api_key": "3pdaagk3xy8xav3t458ev2gdz4st1s5a20838s1ahf1ah9prp1a0m52w"
     },
     "demo:host:demo/workload-b": {
       "id": "demo:host:demo/workload-b",
-      "api_key": "39j3r7zjnkbsz1p6sjmg1g9wad126ebfp32bf4j0h3e593r436nj2q"
+      "api_key": "1y6644g1y0h6m421nzeww1dtr3er14627g830hnrbx1tyfk7acaf589"
     }
   },
   "version": 1
