@@ -150,7 +150,7 @@ sleep 15
 
 # 7. Initialize Conjur
 echo "[3/4] Initializing Conjur and loading policy..."
-docker exec -T conjur conjurctl account create demo > admin_data.txt
+docker exec conjur conjurctl account create demo > admin_data.txt
 API_KEY=$(grep "API key for admin" admin_data.txt | awk '{print $5}')
 rm -f admin_data.txt
 
