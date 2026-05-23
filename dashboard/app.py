@@ -142,7 +142,14 @@ def container_status(name):
         # docker-py container.status returns string like 'running', 'exited'
         return container.status
     except docker.errors.NotFound:
-        return "not found"
+        alias = CONTAINER_ALIASES.get(name, name)
+        try:
+            container = docker_client.containers.get(alias)
+            return container.status
+        except docker.errors.NotFound:
+            return "not found"
+        except Exception:
+            return "error"
     except Exception:
         return "error"
 
@@ -197,7 +204,10 @@ def _tail_container_logs(cname):
         return
     while True:
         try:
-            container = docker_client.containers.get(cname)
+            try:
+                container = docker_client.containers.get(cname)
+            except docker.errors.NotFound:
+                container = docker_client.containers.get(alias)
             for line in container.logs(stream=True, tail=50):
                 if line:
                     entry = json.dumps({

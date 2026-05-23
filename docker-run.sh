@@ -215,6 +215,7 @@ docker run -d $PLATFORM_FLAG \
   -v workload_a_certs:/workload_a_certs \
   -v workload_b_certs:/workload_b_certs \
   -v "$(pwd)/certs:/certs:ro" \
+  -v "$(pwd)/dashboard/app.py:/dashboard/app.py:ro" \
   "${DOCKER_USERNAME}/conjur-demo-dashboard:latest"
 
 echo ""
