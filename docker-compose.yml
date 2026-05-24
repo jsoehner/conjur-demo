@@ -14,8 +14,11 @@ services:
     image: cyberark/conjur:latest
     command: server
     environment:
+      OPENSSL_FIPS: "0"
       DATABASE_URL: postgres://conjur:${CONJUR_DB_PASSWORD:-secret}@database/conjur
       CONJUR_DATA_KEY: ${CONJUR_DATA_KEY}
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "8080:80"
     depends_on:
