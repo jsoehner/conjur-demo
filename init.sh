@@ -6,7 +6,7 @@ echo "=== Conjur Demo Initialization ==="
 # 0. Cleanup previous state
 echo "[0/4] Cleaning up previous state..."
 echo "       -> Tearing down existing containers, networks, and volumes to ensure a clean slate."
-docker-compose down -v 2>/dev/null || true
+docker compose down -v 2>/dev/null || true
 docker volume rm conjur-demo_database_data conjur-demo_workload_a_certs conjur-demo_workload_b_certs 2>/dev/null || true
 rm -rf certs/*
 
@@ -79,14 +79,14 @@ export CONJUR_DB_PASSWORD="demo_password123"
 # Start the database and Conjur
 echo "[2/4] Starting Conjur Infrastructure..."
 echo "       -> Spinning up the PostgreSQL database and Conjur OSS container."
-docker-compose up -d database conjur
+docker compose up -d database conjur
 sleep 15 # Wait for DB to be ready
 
 # 3. Initialize Conjur
 echo "[3/4] Initializing Conjur and loading policy..."
 echo "       -> Creating the 'demo' account."
 echo "       -> Loading policy/conjur.yml to define host identities, CA permissions, and restrictions."
-docker-compose exec -T conjur conjurctl account create demo > admin_data.txt
+docker compose exec -T conjur conjurctl account create demo > admin_data.txt
 API_KEY=$(grep "API key for admin" admin_data.txt | awk '{print $5}')
 
 # BUG FIX: Remove admin_data.txt immediately after extracting the API key so it
@@ -110,7 +110,7 @@ echo "[4/4] Building and starting Workloads..."
 echo "       -> This step launches the client (Workload A) and server (Workload B)."
 echo "       -> Both workloads use a sidecar to independently generate a private key and CSR."
 echo "       -> The sidecars authenticate with Conjur and receive signed X.509 certificates."
-docker-compose up -d --build workload-a workload-b dashboard
+docker compose up -d --build workload-a workload-b dashboard
 
 echo ""
 echo "=========================================================="
@@ -123,7 +123,7 @@ echo "Workload A (Client) is actively making mTLS requests to Workload B (Server
 echo ""
 echo "To observe the mTLS traffic in action and view the sidecar certificate logic, run:"
 echo ""
-echo "    docker-compose logs -f workload-a workload-b"
+echo "    docker compose logs -f workload-a workload-b"
 echo ""
 echo "Or open the live visual dashboard in your browser:"
 echo ""
