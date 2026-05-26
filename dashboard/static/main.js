@@ -389,7 +389,10 @@ document.querySelectorAll(".renew-btn").forEach(btn => {
     btn.disabled = true;
     
     try {
-      await fetch(`/api/renew/${workload}`, { method: "POST" });
+      await fetch(`/api/renew/${workload}`, { 
+        method: "POST",
+        headers: { "Authorization": "Bearer demo-token" }
+      });
       // The cert API polling every 10s will naturally pick up the new cert
       // but let's do a quick poll immediately after 2 seconds to feel snappy
       setTimeout(pollCerts, 2000);

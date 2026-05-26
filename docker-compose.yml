@@ -84,19 +84,30 @@ services:
       - ./certs:/ca:ro
       - workload_b_certs:/certs
 
+  dockerproxy:
+    image: tecnativa/docker-socket-proxy:latest
+    environment:
+      CONTAINERS: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - conjur
+
   dashboard:
     build:
       context: ./dashboard
     ports:
       - "5001:5000"
+    environment:
+      DOCKER_HOST: tcp://dockerproxy:2375
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
       - workload_a_certs:/workload_a_certs
       - workload_b_certs:/workload_b_certs
       - ./certs:/certs:ro
     depends_on:
       - workload-a
       - workload-b
+      - dockerproxy
     networks:
       - conjur
 

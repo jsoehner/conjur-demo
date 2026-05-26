@@ -105,6 +105,10 @@ docker run --rm -i --network conjur-demo_conjur \
 export WORKLOAD_A_API_KEY=$(grep -A 1 '"id": "demo:host:demo/workload-a"' policy/policy_data.json | grep api_key | awk -F'"' '{print $4}')
 export WORKLOAD_B_API_KEY=$(grep -A 1 '"id": "demo:host:demo/workload-b"' policy/policy_data.json | grep api_key | awk -F'"' '{print $4}')
 
+# BUG FIX: Remove policy_data.json immediately after extracting the API keys so they
+# are never accidentally committed or left on disk.
+rm -f policy/policy_data.json
+
 # 4. Start the workloads and CA signer
 echo "[4/4] Building and starting Workloads..."
 echo "       -> This step launches the client (Workload A) and server (Workload B)."

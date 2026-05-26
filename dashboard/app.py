@@ -17,7 +17,7 @@ import queue
 import time
 from datetime import datetime, timezone
 import docker
-from flask import Flask, jsonify, render_template_string, Response, send_from_directory
+from flask import Flask, jsonify, render_template_string, Response, send_from_directory, request
 
 app = Flask(__name__, static_folder="static")
 
@@ -205,7 +205,7 @@ def api_config():
                 for env in env_list:
                     if "=" in env:
                         k, v = env.split("=", 1)
-                        if any(secret in k.lower() for secret in ["key", "password", "secret", "token"]):
+                        if any(secret in k.lower() for secret in ["key", "password", "secret", "token"]) or (k.startswith("CONJUR_") and k not in ["CONJUR_APPLIANCE_URL", "CONJUR_ACCOUNT"]):
                             env_vars[k] = "********"
                         else:
                             env_vars[k] = v
@@ -229,6 +229,10 @@ def api_config():
 
 @app.route("/api/renew/<workload>", methods=["POST"])
 def api_renew(workload):
+    auth_header = request.headers.get("Authorization")
+    if auth_header != "Bearer demo-token":
+        return jsonify({"error": "unauthorized"}), 401
+
     cert_path = WORKLOAD_A_CERT if workload == "workload-a" else WORKLOAD_B_CERT if workload == "workload-b" else None
     if not cert_path:
         return jsonify({"error": "invalid workload"}), 400
