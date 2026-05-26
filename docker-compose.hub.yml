@@ -1,0 +1,113 @@
+services:
+  database:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: conjur
+      POSTGRES_USER: conjur
+      POSTGRES_PASSWORD: ${CONJUR_DB_PASSWORD:-secret}
+    volumes:
+      - database_data:/var/lib/postgresql/data
+    networks:
+      - conjur
+
+  conjur:
+    image: cyberark/conjur:latest
+    command: server
+    environment:
+      OPENSSL_FIPS: "0"
+      DATABASE_URL: postgres://conjur:${CONJUR_DB_PASSWORD:-secret}@database/conjur
+      CONJUR_DATA_KEY: ${CONJUR_DATA_KEY}
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "8080:80"
+    depends_on:
+      - database
+    networks:
+      - conjur
+    volumes:
+      - ./policy:/policy
+
+  ca-signer:
+    image: ${REGISTRY_OWNER:-jsoehner}/conjur-demo-ca-signer:latest
+    environment:
+      CA_CERT_PATH: /ca/ca.crt
+      CA_KEY_PATH: /ca/ca.key
+      LISTEN_PORT: 8000
+    volumes:
+      - ./certs:/ca:ro
+    networks:
+      - conjur
+    depends_on:
+      - conjur
+
+  workload-a:
+    image: ${REGISTRY_OWNER:-jsoehner}/conjur-demo-workload-a:latest
+    environment:
+      CONJUR_APPLIANCE_URL: http://conjur:80
+      CONJUR_ACCOUNT: demo
+      CONJUR_AUTHN_LOGIN: host/demo/workload-a
+      CONJUR_AUTHN_API_KEY: ${WORKLOAD_A_API_KEY}
+      CA_SIGNER_URL: http://ca-signer:8000
+    depends_on:
+      - conjur
+      - ca-signer
+      - workload-b
+    networks:
+      - conjur
+    volumes:
+      - ./certs:/ca:ro
+      - workload_a_certs:/certs
+
+  workload-b:
+    image: ${REGISTRY_OWNER:-jsoehner}/conjur-demo-workload-b:latest
+    environment:
+      CONJUR_APPLIANCE_URL: http://conjur:80
+      CONJUR_ACCOUNT: demo
+      CONJUR_AUTHN_LOGIN: host/demo/workload-b
+      CONJUR_AUTHN_API_KEY: ${WORKLOAD_B_API_KEY}
+      CA_SIGNER_URL: http://ca-signer:8000
+    ports:
+      - "8443:8443"
+    depends_on:
+      - conjur
+      - ca-signer
+    networks:
+      - conjur
+    volumes:
+      - ./certs:/ca:ro
+      - workload_b_certs:/certs
+
+  dockerproxy:
+    image: tecnativa/docker-socket-proxy:latest
+    environment:
+      CONTAINERS: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - conjur
+
+  dashboard:
+    image: ${REGISTRY_OWNER:-jsoehner}/conjur-demo-dashboard:latest
+    ports:
+      - "5001:5000"
+    environment:
+      DOCKER_HOST: tcp://dockerproxy:2375
+    volumes:
+      - workload_a_certs:/workload_a_certs
+      - workload_b_certs:/workload_b_certs
+      - ./certs:/certs:ro
+    depends_on:
+      - workload-a
+      - workload-b
+      - dockerproxy
+    networks:
+      - conjur
+
+networks:
+  conjur:
+
+volumes:
+  database_data:
+  workload_a_certs:
+  workload_b_certs:
