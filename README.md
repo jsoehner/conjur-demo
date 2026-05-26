@@ -87,7 +87,7 @@ Workload A ──(CSR)──▶ CA Signer ──(Cert)──▶ Workload A
 2. The script will output verbose statuses of each step as it automatically builds and launches the environment.
 3. Once initialization is complete, observe the active mTLS traffic between the applications:
    ```bash
-   docker-compose logs -f workload-a workload-b
+   docker compose logs -f workload-a workload-b
    ```
 4. Look for messages from the sidecars indicating that they are securely managing their own identities, and requests being successfully served by the server over an authenticated mTLS session.
 

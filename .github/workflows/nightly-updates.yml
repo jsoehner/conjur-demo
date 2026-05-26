@@ -58,7 +58,7 @@ jobs:
           sleep 30
           
           # Fetch logs for workload-a and verify success
-          CLIENT_LOGS=$(docker-compose logs workload-a)
+          CLIENT_LOGS=$(docker compose logs workload-a)
           echo "=== Workload A (Client) Logs ==="
           echo "$CLIENT_LOGS"
           echo "================================="
@@ -73,7 +73,7 @@ jobs:
       - name: Tear Down Stack
         if: always() && steps.check_changes.outputs.changes == 'true'
         run: |
-          docker-compose down -v || true
+          docker compose down -v || true
 
       - name: Create Pull Request
         if: steps.check_changes.outputs.changes == 'true'
