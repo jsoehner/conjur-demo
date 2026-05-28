@@ -123,7 +123,7 @@ chmod 644 certs/ca.key certs/ca.crt
 
 # 5. Export variables
 export CONJUR_DATA_KEY="$(docker run --rm $PLATFORM_FLAG cyberark/conjur:latest data-key generate)"
-export CONJUR_DB_PASSWORD="demo_password123"
+export CONJUR_DB_PASSWORD="${CONJUR_DB_PASSWORD:-$(openssl rand -hex 16)}"
 
 # 6. Start the database and Conjur
 echo "[2/4] Starting Conjur Infrastructure (Database & Conjur)..."

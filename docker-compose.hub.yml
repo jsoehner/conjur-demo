@@ -4,18 +4,18 @@ services:
     environment:
       POSTGRES_DB: conjur
       POSTGRES_USER: conjur
-      POSTGRES_PASSWORD: ${CONJUR_DB_PASSWORD:-secret}
+      POSTGRES_PASSWORD: ${CONJUR_DB_PASSWORD}
     volumes:
       - database_data:/var/lib/postgresql/data
     networks:
       - conjur
 
   conjur:
-    image: cyberark/conjur:latest
+    image: cyberark/conjur:1.18.0
     command: server
     environment:
       OPENSSL_FIPS: "0"
-      DATABASE_URL: postgres://conjur:${CONJUR_DB_PASSWORD:-secret}@database/conjur
+      DATABASE_URL: postgres://conjur:${CONJUR_DB_PASSWORD}@database/conjur
       CONJUR_DATA_KEY: ${CONJUR_DATA_KEY}
     security_opt:
       - no-new-privileges:true

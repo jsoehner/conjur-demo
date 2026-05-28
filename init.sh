@@ -74,7 +74,7 @@ chmod 644 certs/ca.key certs/ca.crt
 
 # 2. Export variables for docker compose
 export CONJUR_DATA_KEY="$(docker run --rm cyberark/conjur:1.18.0 data-key generate)"
-export CONJUR_DB_PASSWORD="demo_password123"
+export CONJUR_DB_PASSWORD="${CONJUR_DB_PASSWORD:-$(openssl rand -hex 16)}"
 
 # Start the database and Conjur
 echo "[2/4] Starting Conjur Infrastructure..."

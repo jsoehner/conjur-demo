@@ -1,10 +1,10 @@
 import os
 import tempfile
 import subprocess
-import urllib.request
-import urllib.error
+import urllib.parse
 import base64
 import json
+import requests
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 CA_CERT_PATH = os.getenv("CA_CERT_PATH", "/ca/ca.crt")
@@ -62,18 +62,22 @@ class SignHandler(BaseHTTPRequestHandler):
             return
 
         b64_token = base64.b64encode(token.encode("utf-8")).decode("utf-8")
-        req = urllib.request.Request(f"{CONJUR_URL}/whoami")
-        req.add_header("Authorization", f'Token token="{b64_token}"')
-        
+        parsed = urllib.parse.urlparse(CONJUR_URL)
+        if parsed.scheme not in ("http", "https") or not parsed.netloc:
+            raise ValueError("CONJUR_URL must be a valid http(s) URL")
+        req_url = urllib.parse.urljoin(CONJUR_URL, "/whoami")
+        headers = {"Authorization": f'Token token="{b64_token}"'}
+
         try:
-            with urllib.request.urlopen(req) as response:
-                whoami_data = json.loads(response.read().decode("utf-8"))
-        except urllib.error.HTTPError as e:
+            response = requests.get(req_url, headers=headers, timeout=10)
+            response.raise_for_status()
+            whoami_data = response.json()
+        except requests.exceptions.HTTPError:
             self.send_response(401)
             self.end_headers()
             self.wfile.write(b"Invalid token or authentication failed")
             return
-        except Exception as e:
+        except requests.exceptions.RequestException:
             self.send_response(500)
             self.end_headers()
             self.wfile.write(b"Error communicating with Conjur")

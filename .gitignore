@@ -5,3 +5,4 @@ policy/policy_data.json
 __pycache__/
 *.pyc
 dashboard/__pycache__/
+.venv/
