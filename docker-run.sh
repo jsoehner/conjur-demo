@@ -99,19 +99,21 @@ docker volume create database_data
 docker volume create workload_a_certs
 docker volume create workload_b_certs
 
-# 3. Pull required images
-echo "=== Pulling Images from Docker Hub ==="
+# 3. Pull required external images and build local demo images
+echo "=== Pulling External Images from Docker Hub ==="
 for IMG in \
     "postgres:14" \
     "cyberark/conjur:latest" \
-    "cyberark/conjur-cli:5" \
-    "${DOCKER_USERNAME}/conjur-demo-ca-signer:latest" \
-    "${DOCKER_USERNAME}/conjur-demo-workload-a:latest" \
-    "${DOCKER_USERNAME}/conjur-demo-workload-b:latest" \
-    "${DOCKER_USERNAME}/conjur-demo-dashboard:latest"; do
+    "cyberark/conjur-cli:5"; do
     echo "       -> Pulling $IMG..."
     docker pull $PLATFORM_FLAG "$IMG"
-done
+    done
+
+echo "=== Building Local Demo Images ==="
+docker build $PLATFORM_FLAG -t "${DOCKER_USERNAME}/conjur-demo-ca-signer:latest" -f workloads/ca-signer/Dockerfile workloads
+docker build $PLATFORM_FLAG -t "${DOCKER_USERNAME}/conjur-demo-workload-a:latest" -f workloads/mtls-client/Dockerfile workloads
+docker build $PLATFORM_FLAG -t "${DOCKER_USERNAME}/conjur-demo-workload-b:latest" -f workloads/mtls-server/Dockerfile workloads
+docker build $PLATFORM_FLAG -t "${DOCKER_USERNAME}/conjur-demo-dashboard:latest" -f dashboard/Dockerfile dashboard
 
 # 4. Generate a CA for the demo
 echo "[1/4] Generating Demo Root CA..."
