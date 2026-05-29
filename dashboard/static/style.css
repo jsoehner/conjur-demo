@@ -1189,3 +1189,91 @@ body {
   text-align: center;
   padding: 20px 0;
 }
+
+/* ── Metrics Tab ── */
+.metrics-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.metrics-summary-card {
+  background: rgba(99, 102, 241, 0.05);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.metrics-summary-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metrics-summary-val {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.metrics-summary-val.excellent { color: var(--accent-green); }
+.metrics-summary-val.warning { color: var(--accent-amber); }
+.metrics-summary-val.poor { color: var(--accent-red); }
+
+.metrics-workload-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.metrics-workload-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+
+.metrics-wl-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  text-transform: capitalize;
+  text-align: center;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 6px;
+}
+
+.metrics-wl-stats {
+  display: flex;
+  justify-content: space-around;
+}
+
+.metrics-stat-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.metrics-stat-label {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metrics-stat-val {
+  font-size: 1.1rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.metrics-stat-val.successes { color: var(--accent-green); }
+.metrics-stat-val.failures { color: var(--accent-red); }

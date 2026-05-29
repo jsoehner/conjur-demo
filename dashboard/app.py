@@ -47,6 +47,16 @@ CONTAINER_ALIASES = {
 }
 
 # ---------------------------------------------------------------------------
+# Metrics State
+# ---------------------------------------------------------------------------
+metrics_state = {
+    "workload-a": {"last_serial": None, "successes": 0, "failures": 0},
+    "workload-b": {"last_serial": None, "successes": 0, "failures": 0}
+}
+metrics_lock = threading.Lock()
+
+
+# ---------------------------------------------------------------------------
 # Helper: run openssl to parse a cert file
 # ---------------------------------------------------------------------------
 def parse_cert(cert_path):
@@ -169,10 +179,27 @@ def api_status():
 
 @app.route("/api/certs")
 def api_certs():
+    cert_a = parse_cert(WORKLOAD_A_CERT)
+    cert_b = parse_cert(WORKLOAD_B_CERT)
+
+    with metrics_lock:
+        for wl, cert_data in [("workload-a", cert_a), ("workload-b", cert_b)]:
+            if cert_data and "error" not in cert_data and cert_data.get("serial"):
+                current_serial = cert_data["serial"]
+                last_serial = metrics_state[wl]["last_serial"]
+                if last_serial is not None and current_serial != last_serial:
+                    metrics_state[wl]["successes"] += 1
+                metrics_state[wl]["last_serial"] = current_serial
+
     return jsonify({
-        "workload-a": parse_cert(WORKLOAD_A_CERT),
-        "workload-b": parse_cert(WORKLOAD_B_CERT),
+        "workload-a": cert_a,
+        "workload-b": cert_b,
     })
+
+@app.route("/api/metrics")
+def api_metrics():
+    with metrics_lock:
+        return jsonify(metrics_state)
 
 
 @app.route("/api/config")
@@ -266,9 +293,20 @@ def _tail_container_logs(cname):
                 container = docker_client.containers.get(alias)
             for line in container.logs(stream=True, tail=50):
                 if line:
+                    decoded_line = line.decode('utf-8', errors='replace').rstrip()
+                    
+                    # Intercept sidecar errors for metrics
+                    l_lower = decoded_line.lower()
+                    if "[sidecar]" in l_lower and ("error" in l_lower or "fail" in l_lower):
+                        with metrics_lock:
+                            if "workload-a" in cname:
+                                metrics_state["workload-a"]["failures"] += 1
+                            elif "workload-b" in cname:
+                                metrics_state["workload-b"]["failures"] += 1
+
                     entry = json.dumps({
                         "source": alias, 
-                        "line": line.decode('utf-8', errors='replace').rstrip()
+                        "line": decoded_line
                     })
                     try:
                         log_queue.put_nowait(entry)

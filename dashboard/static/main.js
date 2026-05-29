@@ -21,7 +21,6 @@ const START_TIME      = Date.now();
 let totalRequests = 0;
 let successCount  = 0;
 let failCount     = 0;
-let renewalCount  = 0;
 let logLines      = 0;
 
 /* ── Element refs ──────────────────────────────────────── */
@@ -330,7 +329,6 @@ function appendLogLine(source, text) {
     els.logStream.scrollTop = els.logStream.scrollHeight;
   }
 
-  // Stat tracking
   if (text.includes("[Client]")) {
     if (text.includes("Response:") && text.includes("200")) {
       totalRequests++;
@@ -345,10 +343,6 @@ function appendLogLine(source, text) {
       els.statTotal.textContent  = totalRequests;
       els.statFail.textContent   = failCount;
     }
-  }
-  if (text.includes("[Sidecar]") && (text.includes("Renew") || text.includes("renewal"))) {
-    renewalCount++;
-    els.statRenewals.textContent = renewalCount;
   }
 }
 
@@ -521,6 +515,76 @@ async function pollConfig() {
   }
 }
 
+/* ── Observability Metrics ─────────────────────────────── */
+async function pollMetrics() {
+  try {
+    const res = await fetch("/api/metrics");
+    const data = await res.json();
+    
+    const container = document.getElementById("metrics-grid-container");
+    if (!container) return;
+
+    const wa = data["workload-a"] || { successes: 0, failures: 0 };
+    const wb = data["workload-b"] || { successes: 0, failures: 0 };
+    
+    const totalSuccess = wa.successes + wb.successes;
+    const totalFailures = wa.failures + wb.failures;
+    const totalAttempts = totalSuccess + totalFailures;
+    
+    let rate = 100;
+    if (totalAttempts > 0) {
+      rate = Math.round((totalSuccess / totalAttempts) * 100);
+    }
+    
+    // Update global stat bar
+    if (els.statRenewals) els.statRenewals.textContent = totalSuccess;
+    
+    let rateClass = "excellent";
+    if (rate < 80) rateClass = "poor";
+    else if (rate < 95) rateClass = "warning";
+    
+    container.innerHTML = `
+      <div class="metrics-summary-card">
+        <span class="metrics-summary-title">Overall Renewal Success Rate</span>
+        <span class="metrics-summary-val ${rateClass}">${totalAttempts > 0 ? rate + '%' : 'N/A'}</span>
+      </div>
+      
+      <div class="metrics-workload-row">
+        <div class="metrics-workload-card">
+          <div class="metrics-wl-name">Workload A</div>
+          <div class="metrics-wl-stats">
+            <div class="metrics-stat-box">
+              <span class="metrics-stat-label">Successes</span>
+              <span class="metrics-stat-val successes">${wa.successes}</span>
+            </div>
+            <div class="metrics-stat-box">
+              <span class="metrics-stat-label">Failures</span>
+              <span class="metrics-stat-val failures">${wa.failures}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="metrics-workload-card">
+          <div class="metrics-wl-name">Workload B</div>
+          <div class="metrics-wl-stats">
+            <div class="metrics-stat-box">
+              <span class="metrics-stat-label">Successes</span>
+              <span class="metrics-stat-val successes">${wb.successes}</span>
+            </div>
+            <div class="metrics-stat-box">
+              <span class="metrics-stat-label">Failures</span>
+              <span class="metrics-stat-val failures">${wb.failures}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  } catch (err) {
+    console.error("Failed to poll metrics:", err);
+  }
+}
+
+
 /* ── Kick everything off ───────────────────────────────── */
 function init() {
   // Tab switching logic
@@ -563,11 +627,13 @@ function init() {
   pollStatus();
   pollCerts();
   pollConfig();
+  pollMetrics();
   connectSSE();
 
   setInterval(pollStatus, POLL_STATUS_MS);
   setInterval(pollCerts,  POLL_CERTS_MS);
   setInterval(pollConfig, POLL_CONFIG_MS);
+  setInterval(pollMetrics, POLL_STATUS_MS);
 }
 
 init();
