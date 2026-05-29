@@ -129,7 +129,7 @@ body {
 
 .bottom-grid {
   display: grid;
-  grid-template-columns: 1fr 1.1fr;
+  grid-template-columns: 1fr 1fr 1.5fr;
   gap: 20px;
   flex: 1;
   min-height: 0;
@@ -344,7 +344,7 @@ body {
   align-items: center;
   gap: 5px;
   flex: 1;
-  max-width: 160px;
+  max-width: 600px;
 }
 
 .mtls-arrow-label {
@@ -881,7 +881,7 @@ body {
     overflow-y: auto;
     overflow-x: hidden;
   }
-  .main-grid {
+  .bottom-grid {
     grid-template-columns: 1fr;
     height: auto;
     overflow: visible;
