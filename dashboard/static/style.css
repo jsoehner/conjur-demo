@@ -117,9 +117,9 @@ body {
 .header-time  { font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono); }
 
 /* ── Layout ─────────────────────────────────────────────── */
-.main-grid {
-  display: grid;
-  grid-template-columns: 1fr 1.1fr;
+.main-layout {
+  display: flex;
+  flex-direction: column;
   gap: 20px;
   padding: 20px 24px;
   flex: 1;
@@ -127,7 +127,16 @@ body {
   overflow: hidden;
 }
 
-.left-col, .right-col {
+.bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 20px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.bottom-col {
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -172,11 +181,11 @@ body {
 
 /* ── Architecture Panel ──────────────────────────────────── */
 .arch-panel {
-  flex: 1;
   display: flex;
   flex-direction: column;
   box-shadow: var(--shadow-glow-indigo);
   min-height: 0;
+  flex: 0 0 auto;
 }
 
 .arch-canvas {
@@ -577,7 +586,7 @@ body {
 
 /* ── Log Panel ───────────────────────────────────────────── */
 .log-panel {
-  flex: 1.05;
+  flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 0;

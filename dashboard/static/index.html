@@ -39,12 +39,9 @@
     </div>
   </header>
 
-  <main class="main-grid">
-
-    <!-- ── Left column ───────────────────────────────────────────── -->
-    <div class="left-col">
-      <!-- ── Left: Architecture Visualisation ──────────────────────── -->
-      <section class="panel arch-panel" aria-label="Architecture visualisation">
+  <main class="main-layout">
+    <!-- ── Top: Architecture Visualisation ──────────────────────── -->
+    <section class="panel arch-panel full-width" aria-label="Architecture visualisation">
         <div class="panel-header">
           <h2 class="panel-title">Live mTLS Communication</h2>
           <span class="panel-badge" id="request-counter">0 requests</span>
@@ -183,8 +180,12 @@
         </div>
       </section>
 
-      <!-- Cert cards row -->
-      <div class="cert-row">
+    <!-- ── Bottom Row Grid ───────────────────────────────────────────── -->
+    <div class="bottom-grid">
+      <!-- ── Bottom Left: Certs & Config ─────────────────────────── -->
+      <div class="bottom-col">
+        <!-- Cert cards row -->
+        <div class="cert-row">
         <!-- Cert A -->
         <div class="cert-card" id="cert-card-a" aria-label="Workload A certificate">
           <div class="cert-card-header">
@@ -272,14 +273,10 @@
             <pre class="cert-raw-block cert-mono" id="cert-b-pem-val">Loading PEM certificate...</pre>
           </div>
         </div>
-      </div>
-    </div>
+        </div>
 
-    <!-- ── Right column ───────────────────────────────────────────── -->
-    <div class="right-col">
-
-      <!-- ── Telemetry & Config Panel ────────────────────────── -->
-      <section class="panel config-panel" aria-label="System configuration & telemetry">
+        <!-- ── Telemetry & Config Panel ────────────────────────── -->
+        <section class="panel config-panel" aria-label="System configuration & telemetry">
         <div class="panel-header">
           <h2 class="panel-title">System Telemetry &amp; Config</h2>
           <div class="config-tabs">
@@ -308,10 +305,13 @@
             </div>
           </div>
         </div>
-      </section>
+        </section>
+      </div>
 
-      <!-- Activity Log -->
-      <div class="panel log-panel" aria-label="Live activity log">
+      <!-- ── Bottom Right: Activity Log ────────────────────────── -->
+      <div class="bottom-col">
+        <!-- Activity Log -->
+        <div class="panel log-panel" aria-label="Live activity log">
         <div class="panel-header">
           <h2 class="panel-title">Live Activity Log</h2>
           <div class="log-controls">
@@ -328,9 +328,10 @@
           </div>
         </div>
         <div class="log-stream" id="log-stream" role="log" aria-live="polite" aria-relevant="additions"></div>
+        </div>
       </div>
 
-    </div><!-- /right-col -->
+    </div><!-- /bottom-grid -->
 
   </main>
 
