@@ -5,6 +5,16 @@ services:
       POSTGRES_DB: conjur
       POSTGRES_USER: conjur
       POSTGRES_PASSWORD: ${CONJUR_DB_PASSWORD}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U conjur"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
       - database_data:/var/lib/postgresql/data
     networks:
@@ -21,8 +31,19 @@ services:
       - no-new-privileges:true
     ports:
       - "8080:80"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
     depends_on:
-      - database
+      database:
+        condition: service_healthy
     networks:
       - conjur
     volumes:
@@ -38,6 +59,16 @@ services:
       LISTEN_PORT: 8000
     volumes:
       - ./certs:/ca:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     networks:
       - conjur
     depends_on:
@@ -53,10 +84,18 @@ services:
       CONJUR_AUTHN_LOGIN: host/demo/workload-a
       CONJUR_AUTHN_API_KEY: ${WORKLOAD_A_API_KEY}
       CA_SIGNER_URL: http://ca-signer:8000
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 128M
     depends_on:
-      - conjur
-      - ca-signer
-      - workload-b
+      conjur:
+        condition: service_healthy
+      ca-signer:
+        condition: service_started
+      workload-b:
+        condition: service_started
     networks:
       - conjur
     volumes:
@@ -75,9 +114,16 @@ services:
       CA_SIGNER_URL: http://ca-signer:8000
     ports:
       - "8443:8443"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 128M
     depends_on:
-      - conjur
-      - ca-signer
+      conjur:
+        condition: service_healthy
+      ca-signer:
+        condition: service_started
     networks:
       - conjur
     volumes:

@@ -23,8 +23,8 @@ CERT_FILE="$CERT_DIR/tls.crt"
 # SAN pattern enforced by demo
 SAN="spiffe://demo/$SERVICE_NAME"
 
-# Renewal threshold: renew if less than 60 seconds of the 5-minute lifetime remains
-RENEWAL_THRESHOLD_SECONDS=60
+# Renewal threshold: renew if less than 1 hour of the 24-hour lifetime remains
+RENEWAL_THRESHOLD_SECONDS=3600
 
 generate_and_sign() {
     echo "[Sidecar] Generating private key for $SERVICE_NAME..."
@@ -65,6 +65,7 @@ generate_and_sign() {
 
     mv "$TEMP_CERT" "$CERT_FILE"
     mv "$KEY_FILE.tmp" "$KEY_FILE"
+    chmod 600 "$KEY_FILE"
     chmod 644 "$CERT_FILE"
 
     echo "[Sidecar] Certificate received and saved to $CERT_FILE"

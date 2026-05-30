@@ -1,11 +1,22 @@
 import os
 import tempfile
+import stat
 import subprocess
 import urllib.parse
 import base64
 import json
 import requests
+import logging
+import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
+
+# Structured JSON logging for audit trail
+logging.basicConfig(
+    level=logging.INFO, 
+    format='{"timestamp": "%(asctime)s", "level": "%(levelname)s", "service": "ca-signer", "message": "%(message)s"}'
+)
+
+RATE_LIMITS = {}
 
 CA_CERT_PATH = os.getenv("CA_CERT_PATH", "/ca/ca.crt")
 CA_KEY_PATH = os.getenv("CA_KEY_PATH", "/ca/ca.key")
@@ -47,7 +58,7 @@ with open("/tmp/ca/ca.cnf", "w") as f:
 
 class SignHandler(BaseHTTPRequestHandler):
     def do_POST(self):
-        if self.path != "/sign":
+        if self.path not in ["/sign", "/revoke"]:
             self.send_response(404)
             self.end_headers()
             self.wfile.write(b"Not found")
@@ -96,33 +107,87 @@ class SignHandler(BaseHTTPRequestHandler):
         # 2. Authorization
         san_header = self.headers.get("X-SAN", "").strip()
         if san_header != allowed_san:
+            logging.warning(f"Forbidden SAN attempted by {workload_name}. Expected {allowed_san}, got {san_header}")
             self.send_response(403)
             self.end_headers()
             self.wfile.write(f"Forbidden SAN. Expected {allowed_san}".encode("utf-8"))
             return
 
+        # 3. Rate Limiting (Max 10 requests per minute per workload)
+        now = time.time()
+        history = RATE_LIMITS.get(workload_name, [])
+        history = [t for t in history if now - t < 60]
+        if len(history) >= 10:
+            logging.warning(f"Rate limit exceeded for {workload_name}")
+            self.send_response(429)
+            self.end_headers()
+            self.wfile.write(b"Rate limit exceeded")
+            return
+        history.append(now)
+        RATE_LIMITS[workload_name] = history
+
         content_length = int(self.headers.get("Content-Length", 0))
-        if content_length <= 0:
+        if content_length <= 0 or content_length > 16384:
             self.send_response(400)
             self.end_headers()
-            self.wfile.write(b"Missing CSR body")
+            self.wfile.write(b"Invalid or missing request body (must be >0 and <=16KB)")
             return
 
-        csr_data = self.rfile.read(content_length)
+        req_data = self.rfile.read(content_length)
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pem") as csr_file:
+        if self.path == "/revoke":
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pem", prefix="conjur_") as cert_file:
+                cert_file.write(req_data)
+                cert_file.flush()
+                os.chmod(cert_file.name, stat.S_IRUSR | stat.S_IWUSR)
+                cert_file_path = cert_file.name
+
+            cmd_revoke = ["openssl", "ca", "-batch", "-config", "/tmp/ca/ca.cnf", "-revoke", cert_file_path]
+            cmd_crl = ["openssl", "ca", "-batch", "-config", "/tmp/ca/ca.cnf", "-gencrl", "-out", "/tmp/ca/crl.pem"]
+
+            try:
+                subprocess.run(cmd_revoke, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                subprocess.run(cmd_crl, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            except subprocess.CalledProcessError as exc:
+                self.send_response(500)
+                self.end_headers()
+                self.wfile.write(b"Certificate revocation failed")
+                if exc.stderr:
+                    logging.error(f"Certificate revocation error for {workload_name}: {exc.stderr.decode('utf-8', errors='ignore')}")
+                return
+            finally:
+                if os.path.exists(cert_file_path):
+                    try:
+                        os.unlink(cert_file_path)
+                    except OSError:
+                        pass
+
+            logging.info(f"Certificate successfully revoked for {workload_name} (SAN: {san_header})")
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"Revoked successfully")
+            return
+
+        csr_data = req_data
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pem", prefix="conjur_") as csr_file:
             csr_file.write(csr_data)
+            csr_file.flush()
+            os.chmod(csr_file.name, stat.S_IRUSR | stat.S_IWUSR)
             csr_file_path = csr_file.name
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pem") as cert_file:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pem", prefix="conjur_") as cert_file:
+            os.chmod(cert_file.name, stat.S_IRUSR | stat.S_IWUSR)
             cert_file_path = cert_file.name
 
         extfile_path = None
-        with tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".cnf") as ext_file:
+        with tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".cnf", prefix="conjur_") as ext_file:
             ext_file.write(f"[v3_req]\nsubjectAltName={san_header},DNS:{workload_name}\n")
+            ext_file.flush()
+            os.chmod(ext_file.name, stat.S_IRUSR | stat.S_IWUSR)
             extfile_path = ext_file.name
 
-        cmd_date = subprocess.run(["date", "-u", "-d", "+5 minutes", "+%y%m%d%H%M%SZ"], capture_output=True, text=True)
+        cmd_date = subprocess.run(["date", "-u", "-d", "+24 hours", "+%y%m%d%H%M%SZ"], capture_output=True, text=True)
         enddate = cmd_date.stdout.strip()
 
         cmd = [
@@ -131,6 +196,8 @@ class SignHandler(BaseHTTPRequestHandler):
             "-batch",
             "-config",
             "/tmp/ca/ca.cnf",
+            "-subj",
+            f"/CN={workload_name}",
             "-in",
             csr_file_path,
             "-out",
@@ -150,7 +217,9 @@ class SignHandler(BaseHTTPRequestHandler):
         except subprocess.CalledProcessError as exc:
             self.send_response(500)
             self.end_headers()
-            self.wfile.write(exc.stderr or b"Certificate signing failed")
+            self.wfile.write(b"Certificate signing failed")
+            if exc.stderr:
+                logging.error(f"Certificate signing error for {workload_name}: {exc.stderr.decode('utf-8', errors='ignore')}")
             return
         finally:
             for path in [csr_file_path, cert_file_path, extfile_path]:
@@ -160,15 +229,17 @@ class SignHandler(BaseHTTPRequestHandler):
                     except OSError:
                         pass
 
+        logging.info(f"Certificate successfully issued for {workload_name} (SAN: {san_header})")
         self.send_response(200)
         self.send_header("Content-Type", "application/x-pem-file")
         self.end_headers()
         self.wfile.write(cert_data)
 
     def log_message(self, format, *args):
+        # Suppress default BaseHTTPRequestHandler logging to prevent leaking secrets and to use our structured JSON logging instead
         return
 
 if __name__ == "__main__":
-    print(f"[Signer] Starting CA signer service on port {PORT}")
+    logging.info(f"Starting CA signer service on port {PORT}")
     server = HTTPServer(("0.0.0.0", PORT), SignHandler)
     server.serve_forever()
