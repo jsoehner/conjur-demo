@@ -70,10 +70,11 @@ mkdir -p certs
 chmod 755 certs
 openssl genrsa -out certs/ca.key 2048 2>/dev/null
 openssl req -x509 -new -nodes -key certs/ca.key -sha256 -days 3650 -out certs/ca.crt -subj "/CN=Demo-Root-CA" 2>/dev/null
-chmod 644 certs/ca.key certs/ca.crt
+chmod 600 certs/ca.key
+chmod 644 certs/ca.crt
 
 # 2. Export variables for docker compose
-export CONJUR_DATA_KEY="$(docker run --rm cyberark/conjur:1.18.0 data-key generate)"
+export CONJUR_DATA_KEY="$(docker run --rm cyberark/conjur:latest data-key generate)"
 export CONJUR_DB_PASSWORD="${CONJUR_DB_PASSWORD:-$(openssl rand -hex 16)}"
 
 # Start the database and Conjur

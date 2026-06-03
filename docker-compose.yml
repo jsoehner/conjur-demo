@@ -11,7 +11,7 @@ services:
       - conjur
 
   conjur:
-    image: cyberark/conjur:1.18.0
+    image: cyberark/conjur:latest
     command: server
     environment:
       OPENSSL_FIPS: "0"
@@ -86,6 +86,7 @@ services:
 
   dockerproxy:
     image: tecnativa/docker-socket-proxy:latest
+    platform: linux/amd64
     environment:
       CONTAINERS: 1
     volumes:

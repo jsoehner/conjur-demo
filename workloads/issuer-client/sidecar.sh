@@ -65,6 +65,7 @@ generate_and_sign() {
 
     mv "$TEMP_CERT" "$CERT_FILE"
     mv "$KEY_FILE.tmp" "$KEY_FILE"
+    chmod 600 "$KEY_FILE"
     chmod 644 "$CERT_FILE"
 
     echo "[Sidecar] Certificate received and saved to $CERT_FILE"
