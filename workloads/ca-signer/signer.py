@@ -8,6 +8,7 @@ import json
 import requests
 import logging
 import time
+import ssl
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 # Structured JSON logging for audit trail
@@ -21,7 +22,7 @@ RATE_LIMITS = {}
 CA_CERT_PATH = os.getenv("CA_CERT_PATH", "/ca/ca.crt")
 CA_KEY_PATH = os.getenv("CA_KEY_PATH", "/ca/ca.key")
 PORT = int(os.getenv("LISTEN_PORT", "8000"))
-CONJUR_URL = "http://conjur:80"
+CONJUR_URL = os.getenv("CONJUR_APPLIANCE_URL", "http://conjur:80")
 
 # Initialize CA directory for openssl ca
 os.makedirs("/tmp/ca/newcerts", exist_ok=True)
@@ -80,7 +81,7 @@ class SignHandler(BaseHTTPRequestHandler):
         headers = {"Authorization": f'Token token="{b64_token}"'}
 
         try:
-            response = requests.get(req_url, headers=headers, timeout=10)
+            response = requests.get(req_url, headers=headers, timeout=10, verify=False)
             response.raise_for_status()
             whoami_data = response.json()
         except requests.exceptions.HTTPError:
@@ -242,4 +243,7 @@ class SignHandler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     logging.info(f"Starting CA signer service on port {PORT}")
     server = HTTPServer(("0.0.0.0", PORT), SignHandler)
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(certfile=CA_CERT_PATH, keyfile=CA_KEY_PATH)
+    server.socket = context.wrap_socket(server.socket, server_side=True)
     server.serve_forever()

@@ -11,7 +11,7 @@ services:
       - conjur
 
   conjur:
-    image: cyberark/conjur:1.18.0
+    image: cyberark/conjur:latest
     command: server
     environment:
       OPENSSL_FIPS: "0"
@@ -66,7 +66,7 @@ services:
       CONJUR_ACCOUNT: demo
       CONJUR_AUTHN_LOGIN: host/demo/workload-b
       CONJUR_AUTHN_API_KEY: ${WORKLOAD_B_API_KEY}
-      CA_SIGNER_URL: http://ca-signer:8000
+      CA_SIGNER_URL: https://ca-signer:8000
     ports:
       - "8443:8443"
     depends_on:

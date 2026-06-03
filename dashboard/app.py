@@ -204,6 +204,11 @@ def api_metrics():
 
 @app.route("/api/config")
 def api_config():
+    auth_header = request.headers.get("Authorization")
+    expected_token = os.getenv("DASHBOARD_API_TOKEN")
+    if not expected_token or auth_header != f"Bearer {expected_token}":
+        return jsonify({"error": "unauthorized"}), 401
+
     ca_cert_info = parse_cert(CA_CERT)
     container_telemetry = {}
     
@@ -257,7 +262,8 @@ def api_config():
 @app.route("/api/renew/<workload>", methods=["POST"])
 def api_renew(workload):
     auth_header = request.headers.get("Authorization")
-    if auth_header != "Bearer demo-token":
+    expected_token = os.getenv("DASHBOARD_API_TOKEN")
+    if not expected_token or auth_header != f"Bearer {expected_token}":
         return jsonify({"error": "unauthorized"}), 401
 
     cert_path = WORKLOAD_A_CERT if workload == "workload-a" else WORKLOAD_B_CERT if workload == "workload-b" else None
