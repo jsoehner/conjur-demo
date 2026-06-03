@@ -99,21 +99,19 @@ docker volume create database_data
 docker volume create workload_a_certs
 docker volume create workload_b_certs
 
-# 3. Pull required external images and build local demo images
-echo "=== Pulling External Images from Docker Hub ==="
+# 3. Pull required images
+echo "=== Pulling Images from Docker Hub ==="
 for IMG in \
     "postgres:14" \
     "cyberark/conjur:latest" \
-    "cyberark/conjur-cli:5"; do
+    "cyberark/conjur-cli:5" \
+    "${DOCKER_USERNAME}/conjur-demo-ca-signer:latest" \
+    "${DOCKER_USERNAME}/conjur-demo-workload-a:latest" \
+    "${DOCKER_USERNAME}/conjur-demo-workload-b:latest" \
+    "${DOCKER_USERNAME}/conjur-demo-dashboard:latest"; do
     echo "       -> Pulling $IMG..."
     docker pull $PLATFORM_FLAG "$IMG"
     done
-
-echo "=== Building Local Demo Images ==="
-docker build $PLATFORM_FLAG -t "${DOCKER_USERNAME}/conjur-demo-ca-signer:latest" -f workloads/ca-signer/Dockerfile workloads
-docker build $PLATFORM_FLAG -t "${DOCKER_USERNAME}/conjur-demo-workload-a:latest" -f workloads/mtls-client/Dockerfile workloads
-docker build $PLATFORM_FLAG -t "${DOCKER_USERNAME}/conjur-demo-workload-b:latest" -f workloads/mtls-server/Dockerfile workloads
-docker build $PLATFORM_FLAG -t "${DOCKER_USERNAME}/conjur-demo-dashboard:latest" -f dashboard/Dockerfile dashboard
 
 # 4. Generate a CA for the demo
 echo "[1/4] Generating Demo Root CA..."
@@ -152,6 +150,9 @@ sleep 15
 
 # 7. Initialize Conjur
 echo "[3/4] Initializing Conjur and loading policy..."
+# Ensure sensitive files are removed on exit
+trap "rm -f admin_data.txt policy/policy_data.json" EXIT
+
 docker exec conjur conjurctl account create demo > admin_data.txt
 API_KEY=$(grep "API key for admin" admin_data.txt | awk '{print $5}')
 rm -f admin_data.txt
@@ -162,7 +163,7 @@ docker run --rm -i $PLATFORM_FLAG --network conjur-demo_conjur \
   -e CONJUR_ACCOUNT=demo \
   -v "$(pwd)/policy:/policy" \
   --entrypoint sh \
-  cyberark/conjur-cli:5 -c "echo y | conjur init -u http://conjur:80 -a demo && conjur authn login -u admin -p $API_KEY && conjur policy load root /policy/conjur.yml > /policy/policy_data.json"
+  cyberark/conjur-cli:5 -c "echo y | conjur init -u https://conjur -a demo && conjur authn login -u admin -p $API_KEY && conjur policy load root /policy/conjur.yml > /policy/policy_data.json"
 
 export WORKLOAD_A_API_KEY=$(grep -A 1 '"id": "demo:host:demo/workload-a"' policy/policy_data.json | grep api_key | awk -F'"' '{print $4}')
 export WORKLOAD_B_API_KEY=$(grep -A 1 '"id": "demo:host:demo/workload-b"' policy/policy_data.json | grep api_key | awk -F'"' '{print $4}')
@@ -185,6 +186,13 @@ docker run -d $PLATFORM_FLAG \
   "${DOCKER_USERNAME}/conjur-demo-ca-signer:latest"
 
 docker run -d $PLATFORM_FLAG \
+  --name dockerproxy \
+  --network conjur-demo_conjur \
+  -e CONTAINERS=1 \
+  -v /var/run/docker.sock:/var/run/docker.sock:ro \
+  tecnativa/docker-socket-proxy:latest
+
+docker run -d $PLATFORM_FLAG \
   --name workload-b \
   --network conjur-demo_conjur \
   -p 8443:8443 \
@@ -192,8 +200,8 @@ docker run -d $PLATFORM_FLAG \
   -e CONJUR_ACCOUNT=demo \
   -e CONJUR_AUTHN_LOGIN=host/demo/workload-b \
   -e CONJUR_AUTHN_API_KEY="$WORKLOAD_B_API_KEY" \
-  -e CA_SIGNER_URL=http://ca-signer:8000 \
-  -v "$(pwd)/certs:/ca:ro" \
+  -e CA_SIGNER_URL=https://ca-signer:8000 \
+  -v "$(pwd)/certs/ca.crt:/ca/ca.crt:ro" \
   -v workload_b_certs:/certs \
   "${DOCKER_USERNAME}/conjur-demo-workload-b:latest"
 
@@ -204,8 +212,8 @@ docker run -d $PLATFORM_FLAG \
   -e CONJUR_ACCOUNT=demo \
   -e CONJUR_AUTHN_LOGIN=host/demo/workload-a \
   -e CONJUR_AUTHN_API_KEY="$WORKLOAD_A_API_KEY" \
-  -e CA_SIGNER_URL=http://ca-signer:8000 \
-  -v "$(pwd)/certs:/ca:ro" \
+  -e CA_SIGNER_URL=https://ca-signer:8000 \
+  -v "$(pwd)/certs/ca.crt:/ca/ca.crt:ro" \
   -v workload_a_certs:/certs \
   "${DOCKER_USERNAME}/conjur-demo-workload-a:latest"
 
@@ -213,10 +221,10 @@ docker run -d $PLATFORM_FLAG \
   --name dashboard \
   --network conjur-demo_conjur \
   -p 5001:5000 \
-  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e DOCKER_HOST=tcp://dockerproxy:2375 \
   -v workload_a_certs:/workload_a_certs \
   -v workload_b_certs:/workload_b_certs \
-  -v "$(pwd)/certs:/certs:ro" \
+  -v "$(pwd)/certs/ca.crt:/certs/ca.crt:ro" \
   -v "$(pwd)/dashboard/app.py:/dashboard/app.py:ro" \
   "${DOCKER_USERNAME}/conjur-demo-dashboard:latest"
 

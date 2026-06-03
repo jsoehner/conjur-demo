@@ -87,11 +87,13 @@ sleep 15 # Wait for DB to be ready
 echo "[3/4] Initializing Conjur and loading policy..."
 echo "       -> Creating the 'demo' account."
 echo "       -> Loading policy/conjur.yml to define host identities, CA permissions, and restrictions."
+# Ensure sensitive files are removed on exit
+trap "rm -f admin_data.txt policy/policy_data.json" EXIT
+
 docker compose exec -T conjur conjurctl account create demo > admin_data.txt
 API_KEY=$(grep "API key for admin" admin_data.txt | awk '{print $5}')
 
-# BUG FIX: Remove admin_data.txt immediately after extracting the API key so it
-# is never accidentally committed or left on disk.
+# BUG FIX: Remove admin_data.txt immediately after extracting the API key
 rm -f admin_data.txt
 
 # Use the CLI container to load the policy
@@ -106,8 +108,7 @@ docker run --rm -i --network conjur-demo_conjur \
 export WORKLOAD_A_API_KEY=$(grep -A 1 '"id": "demo:host:demo/workload-a"' policy/policy_data.json | grep api_key | awk -F'"' '{print $4}')
 export WORKLOAD_B_API_KEY=$(grep -A 1 '"id": "demo:host:demo/workload-b"' policy/policy_data.json | grep api_key | awk -F'"' '{print $4}')
 
-# BUG FIX: Remove policy_data.json immediately after extracting the API keys so they
-# are never accidentally committed or left on disk.
+# BUG FIX: Remove policy_data.json immediately after extracting the API keys
 rm -f policy/policy_data.json
 
 # 4. Start the workloads and CA signer

@@ -10,7 +10,7 @@ CONJUR_URL=${CONJUR_APPLIANCE_URL}
 ACCOUNT=${CONJUR_ACCOUNT}
 LOGIN=${CONJUR_AUTHN_LOGIN}
 API_KEY=${CONJUR_AUTHN_API_KEY}
-CA_SIGNER_URL=${CA_SIGNER_URL:-http://ca-signer:8000}
+CA_SIGNER_URL=${CA_SIGNER_URL:-https://ca-signer:8000}
 SERVICE_NAME=$(echo $LOGIN | awk -F'/' '{print $3}')
 
 CERT_DIR="/certs"
@@ -23,8 +23,8 @@ CERT_FILE="$CERT_DIR/tls.crt"
 # SAN pattern enforced by demo
 SAN="spiffe://demo/$SERVICE_NAME"
 
-# Renewal threshold: renew if less than 60 seconds of the 5-minute lifetime remains
-RENEWAL_THRESHOLD_SECONDS=60
+# Renewal threshold: renew if less than 1 hour of the 24-hour lifetime remains
+RENEWAL_THRESHOLD_SECONDS=3600
 
 generate_and_sign() {
     echo "[Sidecar] Generating private key for $SERVICE_NAME..."
@@ -38,7 +38,7 @@ generate_and_sign() {
     echo "[Sidecar] Authenticating to Conjur as $LOGIN..."
     # Get Conjur access token
     LOGIN_ENCODED=${LOGIN//\//%2F}
-    TOKEN=$(curl -s --request POST "$CONJUR_URL/authn/$ACCOUNT/$LOGIN_ENCODED/authenticate" \
+    TOKEN=$(curl -k -s --request POST "$CONJUR_URL/authn/$ACCOUNT/$LOGIN_ENCODED/authenticate" \
       --header "Content-Type: text/plain" \
       --data-raw "$API_KEY")
 
@@ -49,7 +49,7 @@ generate_and_sign() {
 
     echo "[Sidecar] Requesting certificate signing from CA signer service..."
     TEMP_CERT=$(mktemp)
-    HTTP_CODE=$(curl -sS -o "$TEMP_CERT" -w "%{http_code}" \
+    HTTP_CODE=$(curl --cacert /ca/ca.crt -sS -o "$TEMP_CERT" -w "%{http_code}" \
       --request POST "$CA_SIGNER_URL/sign" \
       --header "Content-Type: application/pem-certificate-request" \
       --header "X-SAN: URI:$SAN" \

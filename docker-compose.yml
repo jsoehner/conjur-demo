@@ -5,6 +5,16 @@ services:
       POSTGRES_DB: conjur
       POSTGRES_USER: conjur
       POSTGRES_PASSWORD: ${CONJUR_DB_PASSWORD}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U conjur"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
       - database_data:/var/lib/postgresql/data
     networks:
@@ -21,8 +31,19 @@ services:
       - no-new-privileges:true
     ports:
       - "8080:80"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
     depends_on:
-      - database
+      database:
+        condition: service_healthy
     networks:
       - conjur
     volumes:
@@ -38,6 +59,16 @@ services:
       LISTEN_PORT: 8000
     volumes:
       - ./certs:/ca:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "curl", "--cacert", "/ca/ca.crt", "-f", "https://localhost:8000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     networks:
       - conjur
     depends_on:
@@ -52,15 +83,23 @@ services:
       CONJUR_ACCOUNT: demo
       CONJUR_AUTHN_LOGIN: host/demo/workload-a
       CONJUR_AUTHN_API_KEY: ${WORKLOAD_A_API_KEY}
-      CA_SIGNER_URL: http://ca-signer:8000
+      CA_SIGNER_URL: https://ca-signer:8000
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 128M
     depends_on:
-      - conjur
-      - ca-signer
-      - workload-b
+      conjur:
+        condition: service_healthy
+      ca-signer:
+        condition: service_started
+      workload-b:
+        condition: service_started
     networks:
       - conjur
     volumes:
-      - ./certs:/ca:ro
+      - ./certs/ca.crt:/ca/ca.crt:ro
       - workload_a_certs:/certs
 
   workload-b:
@@ -72,16 +111,23 @@ services:
       CONJUR_ACCOUNT: demo
       CONJUR_AUTHN_LOGIN: host/demo/workload-b
       CONJUR_AUTHN_API_KEY: ${WORKLOAD_B_API_KEY}
-      CA_SIGNER_URL: http://ca-signer:8000
+      CA_SIGNER_URL: https://ca-signer:8000
     ports:
       - "8443:8443"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 128M
     depends_on:
-      - conjur
-      - ca-signer
+      conjur:
+        condition: service_healthy
+      ca-signer:
+        condition: service_started
     networks:
       - conjur
     volumes:
-      - ./certs:/ca:ro
+      - ./certs/ca.crt:/ca/ca.crt:ro
       - workload_b_certs:/certs
 
   dockerproxy:
@@ -104,7 +150,7 @@ services:
     volumes:
       - workload_a_certs:/workload_a_certs
       - workload_b_certs:/workload_b_certs
-      - ./certs:/certs:ro
+      - ./certs/ca.crt:/certs/ca.crt:ro
     depends_on:
       - workload-a
       - workload-b
