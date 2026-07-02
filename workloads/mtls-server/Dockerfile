@@ -19,4 +19,4 @@ EXPOSE 8443
 USER appuser
 
 # Run both the sidecar and the app
-CMD /sidecar.sh & python -u /app.py
+CMD ["sh", "-c", "/sidecar.sh & python -u /app.py"]

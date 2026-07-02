@@ -125,3 +125,4 @@ workload-a-1  | [Client] Response: 200 - Hello from Workload B! mTLS connection 
 ## Gotchas
 
 * **Node 20 Deprecation in GitHub Actions:** When GitHub Action runners complain about Node 20 deprecation (`Node.js 20 is deprecated... forced to run on Node.js 24`), simply injecting `setup-node` does not fix third-party actions. You must bump the major version of the affected actions (e.g., `actions/checkout` to `@v7`, `docker/build-push-action` to `@v7`, `peter-evans/create-pull-request` to `@v7`).
+* **JSON Arguments for ENTRYPOINT/CMD in Dockerfiles:** Always use the JSON array format (e.g., `CMD ["sh", "-c", "script.sh & python app.py"]`) rather than the shell form in Dockerfiles. The shell form can cause unintended behavior related to OS signals, as it may prevent signals like `SIGTERM` from correctly propagating to the underlying processes when stopping the container.
