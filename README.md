@@ -121,3 +121,7 @@ workload-a-1  | [Client] Attempting mTLS connection to Workload B...
 workload-b-1  | 172.18.0.5 - - [20/May/2026 12:20:39] "GET / HTTP/1.1" 200 -
 workload-a-1  | [Client] Response: 200 - Hello from Workload B! mTLS connection successful.
 ```
+
+## Gotchas
+
+* **Node 20 Deprecation in GitHub Actions:** When GitHub Action runners complain about Node 20 deprecation (`Node.js 20 is deprecated... forced to run on Node.js 24`), simply injecting `setup-node` does not fix third-party actions. You must bump the major version of the affected actions (e.g., `actions/checkout` to `@v7`, `docker/build-push-action` to `@v7`, `peter-evans/create-pull-request` to `@v7`).
