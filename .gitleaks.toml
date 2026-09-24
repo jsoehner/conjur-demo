@@ -1,0 +1,7 @@
+[allowlist]
+description = "Allowlist for demo fixtures and mock policy data"
+paths = [
+  '''(?i)policy/policy_data\.json''',
+  '''(?i)tests?/''',
+  '''(?i)demo/'''
+]
