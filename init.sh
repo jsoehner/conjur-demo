@@ -8,7 +8,7 @@ echo "[0/4] Cleaning up previous state..."
 echo "       -> Tearing down existing containers, networks, and volumes to ensure a clean slate."
 docker compose down -v 2>/dev/null || true
 docker volume rm conjur-demo_database_data conjur-demo_workload_a_certs conjur-demo_workload_b_certs 2>/dev/null || true
-rm -rf certs/*
+rm -rf certs/* .env
 
 # Pre-flight: ensure required ports are free before starting anything.
 # -n  = skip hostname resolution (prevents lsof hanging on DNS lookups)
@@ -70,7 +70,7 @@ mkdir -p certs
 chmod 755 certs
 openssl genrsa -out certs/ca.key 2048 2>/dev/null
 openssl req -x509 -new -nodes -key certs/ca.key -sha256 -days 3650 -out certs/ca.crt -subj "/CN=Demo-Root-CA" 2>/dev/null
-chmod 600 certs/ca.key
+chmod 644 certs/ca.key
 chmod 644 certs/ca.crt
 
 # 2. Export variables for docker compose
@@ -108,6 +108,14 @@ docker run --rm -i --network conjur-demo_conjur \
 export WORKLOAD_A_API_KEY=$(grep -A 1 '"id": "demo:host:demo/workload-a"' policy/policy_data.json | grep api_key | awk -F'"' '{print $4}')
 export WORKLOAD_B_API_KEY=$(grep -A 1 '"id": "demo:host:demo/workload-b"' policy/policy_data.json | grep api_key | awk -F'"' '{print $4}')
 
+# Write .env so docker compose commands can reference these variables across sessions
+cat <<EOF > .env
+CONJUR_DATA_KEY=${CONJUR_DATA_KEY}
+CONJUR_DB_PASSWORD=${CONJUR_DB_PASSWORD}
+WORKLOAD_A_API_KEY=${WORKLOAD_A_API_KEY}
+WORKLOAD_B_API_KEY=${WORKLOAD_B_API_KEY}
+EOF
+
 # BUG FIX: Remove policy_data.json immediately after extracting the API keys
 rm -f policy/policy_data.json
 
@@ -116,7 +124,7 @@ echo "[4/4] Building and starting Workloads..."
 echo "       -> This step launches the client (Workload A) and server (Workload B)."
 echo "       -> Both workloads use a sidecar to independently generate a private key and CSR."
 echo "       -> The sidecars authenticate with Conjur and receive signed X.509 certificates."
-docker compose up -d --build workload-a workload-b dashboard
+docker compose up -d --build ca-signer workload-a workload-b dashboard
 
 echo ""
 echo "=========================================================="

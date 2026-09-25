@@ -69,6 +69,12 @@ jobs:
           echo "=== Workload A (Client) Logs ==="
           echo "$CLIENT_LOGS"
           echo "================================="
+          echo "=== CA Signer Logs ==="
+          docker compose logs ca-signer 2>&1 || true
+          echo "======================"
+          echo "=== Workload B (Server) Logs ==="
+          docker compose logs workload-b 2>&1 || true
+          echo "================================"
 
           if [ "$SUCCESS" = "true" ]; then
             echo "Verification Succeeded: mTLS connection was established successfully!"
@@ -81,6 +87,7 @@ jobs:
         if: always() && steps.check_changes.outputs.changes == 'true'
         run: |
           docker compose down -v || true
+          rm -f .env
 
       - name: Create Pull Request
         if: steps.check_changes.outputs.changes == 'true'
