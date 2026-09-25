@@ -69,7 +69,7 @@ echo "       -> The Root CA simulates an enterprise CA that Conjur will use to s
 mkdir -p certs
 chmod 755 certs
 openssl genrsa -out certs/ca.key 2048 2>/dev/null
-openssl req -x509 -new -nodes -key certs/ca.key -sha256 -days 3650 -out certs/ca.crt -subj "/CN=Demo-Root-CA" 2>/dev/null
+openssl req -x509 -new -nodes -key certs/ca.key -sha256 -days 3650 -out certs/ca.crt -subj "/CN=Demo-Root-CA" -addext "subjectAltName=DNS:ca-signer,DNS:localhost,IP:127.0.0.1" 2>/dev/null
 chmod 644 certs/ca.key
 chmod 644 certs/ca.crt
 
