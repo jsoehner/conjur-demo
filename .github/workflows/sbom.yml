@@ -35,7 +35,7 @@ jobs:
       # 1. Generate SBOM (SPDX and CycloneDX JSON via Anchore / Syft)
       # -------------------------------------------------------------
       - name: Generate CycloneDX SBOM (Anchore / Syft)
-        uses: anchore/sbom-action@006b7ce8314066bdf1765b4500370d40fa6917a3 # v0.24.2
+        uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
         with:
           path: .
           format: cyclonedx-json
@@ -43,7 +43,7 @@ jobs:
           upload-artifact: false
 
       - name: Generate SPDX SBOM (Anchore / Syft)
-        uses: anchore/sbom-action@006b7ce8314066bdf1765b4500370d40fa6917a3 # v0.24.2
+        uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
         with:
           path: .
           format: spdx-json
@@ -68,7 +68,7 @@ jobs:
       # 3. Dual-Engine Semantic AST Crypto Discovery & Reconciliation
       # -------------------------------------------------------------
       - name: Set up Python for Cryptographic Auditing
-        uses: actions/setup-python@d0904664b58e72765c928b5774a38cc430635489 # v6.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.11'
 
@@ -116,7 +116,7 @@ jobs:
       # -------------------------------------------------------------
       - name: Attach BOMs to GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@c95fe1489396fe8a9ec87454c605f3b76f25241a # v3.0.0
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           files: |
             oss/sbom.cyclonedx.json
