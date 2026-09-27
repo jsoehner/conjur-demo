@@ -122,7 +122,63 @@ workload-b-1  | 172.18.0.5 - - [20/May/2026 12:20:39] "GET / HTTP/1.1" 200 -
 workload-a-1  | [Client] Response: 200 - Hello from Workload B! mTLS connection successful.
 ```
 
+---
+
+## Repository Governance & Supply Chain Security
+
+This repository enforces the **Repository Governance Orchestrator** baseline to guarantee developer experience, commit hygiene, multi-layer security scanning, and dual-engine cryptographic supply chain visibility.
+
+### 🛡️ Dual-Engine SBOM & CBOM Architecture
+
+Manifest scanners alone cannot identify instantiated cryptographic algorithms in source code. This project implements a **dual-engine scanning architecture**:
+1. **Manifest Engine (Syft / cdxgen)**: Inventories software packages and dependencies into SPDX (`oss/sbom.spdx.json`) and CycloneDX (`oss/cbom.json`).
+2. **Semantic AST Engine (`scripts/scan_crypto_ast.py`)**: Traverses source code abstract syntax trees across Python, JS/TS, Go, Java, C/C++, Rust, and C# to identify runtime crypto call sites and automatically reconcile them into the CBOM.
+3. **Automated CI Test Harness (`scripts/test_boms.sh`)**: Enforces 4 strict gates in CI and locally, failing builds if BOMs are missing, invalid, or contain zero cryptographic assets.
+
+```mermaid
+flowchart LR
+    SRC["Source Code & Dependencies"] --> SYFT["Syft / cdxgen<br/>(Software Packages)"]
+    SRC --> AST["Semantic AST Scanner<br/>(Runtime Crypto Calls)"]
+    SYFT --> SBOM["SPDX / CycloneDX SBOM"]
+    SYFT --> CBOM["CycloneDX 1.7 CBOM"]
+    AST --> RECON["CBOM Reconciliation"]
+    CBOM --> RECON
+    RECON --> HARNESS["Automated CI Test Harness<br/>(scripts/test_boms.sh)"]
+    RECON --> PQC["PQC Migration Scorecard<br/>(scripts/analyze_cbom.py)"]
+```
+
+### 📊 Local BOM Generation & Verification
+
+Generate and verify bill of materials locally:
+
+```bash
+# 1. Generate SBOM and CBOM with semantic AST reconciliation
+bash scripts/generate_boms.sh .
+
+# 2. Run automated validation test harness (4/4 gates)
+bash scripts/test_boms.sh oss
+
+# 3. Generate Post-Quantum Cryptography (PQC) markdown & JSON scorecards
+python3 scripts/analyze_cbom.py oss/cbom.json \
+  --markdown oss/crypto-summary.md \
+  --json oss/crypto-analysis.json
+```
+
+### 🔒 Continuous Security & Governance Workflows
+
+| Workflow | Purpose | Standards & Controls |
+| :--- | :--- | :--- |
+| [**`sbom.yml`**](.github/workflows/sbom.yml) | Dual-Engine SBOM & CBOM | Syft, cdxgen (`--include-crypto`), AST reconciliation, release asset attachment |
+| [**`security-testing.yml`**](.github/workflows/security-testing.yml) | Multi-Layer Security | Gitleaks (secrets), Semgrep (SAST OWASP Top 10), Trivy (filesystem & dependency CVEs) |
+| [**`commit-lint.yml`**](.github/workflows/commit-lint.yml) | Commit Hygiene | Enforces [Conventional Commits](CONTRIBUTING.md#commit-message-guidelines) on all PRs and pushes |
+| [**`changelog.yml`**](.github/workflows/changelog.yml) | Automated Releases | `git-cliff` automated `CHANGELOG.md` generation from commit messages |
+| [**`docker-publish.yml`**](.github/workflows/docker-publish.yml) | Container Publishing | Multi-image container builds with Node 24 and immutable SHA-pinned actions |
+| [**`nightly-updates.yml`**](.github/workflows/nightly-updates.yml) | Automated Maintenance | Nightly dependency upgrades verified by live mTLS container spin-up |
+
+---
+
 ## Gotchas
 
-* **Node 20 Deprecation in GitHub Actions:** When GitHub Action runners complain about Node 20 deprecation (`Node.js 20 is deprecated... forced to run on Node.js 24`), simply injecting `setup-node` does not fix third-party actions. You must bump the major version of the affected actions (e.g., `actions/checkout` to `@v7`, `docker/build-push-action` to `@v7`, `peter-evans/create-pull-request` to `@v7`).
+* **Node 24 Modernization & Immutable SHA Pinning:** When GitHub Actions runners complain about Node 20 deprecation, simply bumping `@v4` or `@v7` is insufficient and exposes workflows to supply chain tampering. All GitHub Actions in this repository must use Node 24-compatible releases and be pinned to explicit 40-character commit SHAs (e.g., `actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1`).
 * **JSON Arguments for ENTRYPOINT/CMD in Dockerfiles:** Always use the JSON array format (e.g., `CMD ["sh", "-c", "script.sh & python app.py"]`) rather than the shell form in Dockerfiles. The shell form can cause unintended behavior related to OS signals, as it may prevent signals like `SIGTERM` from correctly propagating to the underlying processes when stopping the container.
+* **Cryptographic Material File Permissions:** All private keys (`ca.key`, workload `tls.key`) must strictly use `600` permissions (`chmod 600`), and containers must execute as non-root users (`USER appuser`).

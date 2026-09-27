@@ -6,3 +6,6 @@ __pycache__/
 *.pyc
 dashboard/__pycache__/
 .venv/
+
+# Generated BOM artifacts
+oss/
