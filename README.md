@@ -80,16 +80,56 @@ Workload A ──(CSR)──▶ CA Signer ──(Cert)──▶ Workload A
 
 ## Running the Demo
 
-1. Simply execute the initialization script:
+You can run the demo either by building images locally from source or by pulling pre-built images from **GitHub Container Registry (ghcr.io)** or **Docker Hub**.
+
+### Option A: Run Pre-Built Images with `run_docker.sh` (Recommended)
+
+The [`run_docker.sh`](run_docker.sh) script automatically handles port validation, architecture detection (ARM64 / amd64), CA generation, Conjur initialization, policy loading, and mTLS verification:
+
+```bash
+# 1. Run using images from GitHub Container Registry (ghcr.io)
+./run_docker.sh up --registry ghcr
+
+# Or run using images from Docker Hub
+./run_docker.sh up --registry dockerhub --user jsoehner
+
+# 2. Verify mTLS connectivity between workloads
+./run_docker.sh verify
+
+# 3. View live logs or container status
+./run_docker.sh status
+./run_docker.sh logs
+
+# 4. Clean up all containers, volumes, networks, and certificates
+./run_docker.sh down
+```
+
+> **Note:** `docker-run.sh` is maintained as a backwards-compatible wrapper that forwards to `run_docker.sh`.
+
+### Option B: Build and Run from Local Source (`init.sh`)
+
+1. Execute the initialization script:
    ```bash
    bash init.sh
    ```
-2. The script will output verbose statuses of each step as it automatically builds and launches the environment.
-3. Once initialization is complete, observe the active mTLS traffic between the applications:
+2. The script will output verbose statuses of each step as it builds and launches the environment.
+3. Observe active mTLS traffic:
    ```bash
    docker compose logs -f workload-a workload-b
    ```
-4. Look for messages from the sidecars indicating that they are securely managing their own identities, and requests being successfully served by the server over an authenticated mTLS session.
+
+### Option C: Run via the Demo Orchestrator Container Image
+
+The demo can also be executed directly using the standalone orchestrator image (`ghcr.io/jsoehner/conjur-demo:latest` or `jsoehner/conjur-demo:latest`):
+
+```bash
+docker run --rm -it \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -p 8080:80 \
+  -p 8443:8443 \
+  -p 5001:5000 \
+  ghcr.io/jsoehner/conjur-demo:latest up
+```
 
 ### Expected Output
 
