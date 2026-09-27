@@ -1,89 +1,71 @@
-# Contributing to Conjur Demo
+# Contributing to [Project Name]
 
-Thank you for your interest in contributing to the **Conjur Demo** project! This repository demonstrates identity-based workload security, mutual TLS (mTLS), automated secrets retrieval via CyberArk Conjur, and cryptographic supply chain governance (SBOM/CBOM).
-
----
+Thank you for your interest in contributing to this project! This document provides guidelines and information for contributors.
 
 ## Code of Conduct
-Please ensure a respectful, collaborative, and inclusive environment for all contributors.
-
----
+Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## How to Contribute
 
 ### Reporting Bugs
-1. **Check existing issues** to confirm the bug hasn't already been reported.
-2. **Open a new issue** with:
-   - Reproduction steps
+1. **Check existing issues** - Search the issue tracker to see if the bug has already been reported.
+2. **Create a new issue** - If not found, create a new issue using the bug report template.
+3. **Provide details** - Include:
+   - Version of the software
+   - Operating system
+   - Steps to reproduce
    - Expected vs actual behavior
-   - Container logs (`docker compose logs`)
-   - Operating system and Docker versions
+   - Relevant logs or screenshots
 
-### Proposing Enhancements
-1. Check existing issues and discussions.
-2. Open a feature request detailing the security, architectural, or demonstration use case.
+### Suggesting Features
+1. **Check existing requests** - Search issues for similar feature requests.
+2. **Create a feature request** - Use the feature request template.
+3. **Describe the use case** - Explain why this feature would be valuable to the users.
 
 ### Contributing Code
-1. Fork or branch from `main`:
-   ```bash
-   git checkout -b feat/your-feature-name
-   ```
-2. Make your changes adhering to style guides and defensive scripting patterns.
-3. Test locally with `./docker-run.sh` or `bash init.sh`.
-4. Verify supply chain and cryptographic bill of materials:
-   ```bash
-   bash scripts/generate_boms.sh .
-   bash scripts/test_boms.sh oss
-   ```
-5. Follow **Conventional Commits** for commit messages.
-6. Submit a Pull Request targeting `main`.
-
----
+1. **Fork the repository**
+2. **Create a feature branch**: `git checkout -b feature/your-feature-name`
+3. **Make your changes**
+4. **Run tests**: Ensure all tests pass before submitting.
+5. **Commit your changes** with a descriptive message following Conventional Commits.
+6. **Push to your fork**: `git push origin feature/your-feature-name`
+7. **Create a Pull Request**
 
 ## Development Setup
 
 ### Prerequisites
-- **Docker Engine** & **Docker Compose** (v2+)
-- **Bash 4+**
-- **OpenSSL 1.1.1+**
-- **Python 3.11+**
-- (Optional for local BOM generation) **Syft** and **@cyclonedx/cdxgen**
+- Standard development environment for the project's primary language.
+- Git.
 
-### Local Quickstart
-1. **Clone the repository**:
+### Setup
+1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/jsoehner/conjur-demo.git
-   cd conjur-demo
+   git clone [REPO_URL]
+   cd [REPO_NAME]
    ```
-2. **Initialize and run stack**:
-   ```bash
-   ./docker-run.sh
-   # or
-   bash init.sh
-   ```
-3. **Verify running containers**:
-   ```bash
-   docker compose ps
-   ```
-
----
+2. **Install Dependencies**:
+   - Follow the project's specific installation instructions (e.g., `npm install`, `pip install -r requirements.txt`, or `./gradlew build`).
+3. **Run Tests**:
+   - Execute the project's test suite to ensure your changes don't introduce regressions.
 
 ## Commit Message Guidelines
-We strictly enforce **Conventional Commits**. PRs will be validated via automated CI linting:
-- `feat:` A new feature or demonstration capability
-- `fix:` A bug fix or security patch
-- `docs:` Documentation improvements
-- `refactor:` Code refactoring without behavioral changes
-- `perf:` Performance optimizations
-- `test:` Adding or updating tests and verification suites
-- `chore:` Maintenance, dependency bumps, or CI/CD workflow updates
+We use **Conventional Commits**. Please use the following prefixes:
+- `feat:` A new feature
+- `fix:` A bug fix
+- `docs:` Documentation only changes
+- `refactor:` A code change that neither fixes a bug nor adds a feature
+- `perf:` A code change that improves performance
+- `test:` Adding missing tests or correcting existing tests
+- `chore:` Changes to the build process or auxiliary tools and libraries
 
-*Example*: `feat(mtls): add dual-engine post-quantum cryptography audit`
-
----
+Example: `feat(api): add new endpoint for user profiles`
 
 ## Pull Request Process
-1. Verify that all container builds succeed without regressions.
-2. Ensure cryptographic call sites and dependencies pass `bash scripts/test_boms.sh oss`.
-3. Complete all sections of the [Pull Request Template](.github/PULL_REQUEST_TEMPLATE.md).
-4. Ensure commits are signed and follow Conventional Commits formatting.
+1. Ensure all tests pass.
+2. Update documentation (if applicable).
+3. Add tests for new functionality.
+4. Fill out the PR template completely.
+5. Request review from maintainers.
+
+## Questions?
+Feel free to open an issue for questions or join discussions in existing issues.

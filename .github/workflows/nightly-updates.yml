@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python
-        uses: actions/setup-python@d0904664b58e72765c928b5774a38cc430635489 # v6.0.0
+        uses: actions/setup-python@v7
         with:
           python-version: '3.11'
 
@@ -54,26 +54,40 @@ jobs:
         if: steps.check_changes.outputs.changes == 'true'
         run: |
           echo "Waiting for workloads to start up and establish mTLS connection..."
-          # We wait 30 seconds for the sidecar and app to negotiate certificates and start request loop
-          sleep 30
-          
-          # Fetch logs for workload-a and verify success
-          CLIENT_LOGS=$(docker compose logs workload-a)
+          SUCCESS=false
+          for i in {1..18}; do
+            CLIENT_LOGS=$(docker compose logs workload-a 2>&1 || true)
+            if echo "$CLIENT_LOGS" | grep -q "mTLS connection successful"; then
+              echo "Verification Succeeded after $((i * 5)) seconds!"
+              SUCCESS=true
+              break
+            fi
+            echo "Waiting for mTLS connection... ($((i * 5))s)"
+            sleep 5
+          done
+
           echo "=== Workload A (Client) Logs ==="
           echo "$CLIENT_LOGS"
           echo "================================="
-          
-          if echo "$CLIENT_LOGS" | grep -q "mTLS connection successful"; then
-              echo "Verification Succeeded: mTLS connection was established successfully!"
+          echo "=== CA Signer Logs ==="
+          docker compose logs ca-signer 2>&1 || true
+          echo "======================"
+          echo "=== Workload B (Server) Logs ==="
+          docker compose logs workload-b 2>&1 || true
+          echo "================================"
+
+          if [ "$SUCCESS" = "true" ]; then
+            echo "Verification Succeeded: mTLS connection was established successfully!"
           else
-              echo "Verification Failed: mTLS connection was not established."
-              exit 1
+            echo "Verification Failed: mTLS connection was not established within 90 seconds."
+            exit 1
           fi
 
       - name: Tear Down Stack
         if: always() && steps.check_changes.outputs.changes == 'true'
         run: |
           docker compose down -v || true
+          rm -f .env
 
       - name: Create Pull Request
         if: steps.check_changes.outputs.changes == 'true'
