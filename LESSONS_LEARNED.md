@@ -23,7 +23,25 @@ A security assessment was conducted on the Conjur mTLS demo repository to identi
 - Granted the non-root user explicit ownership only over the directories they need to write to (e.g., `/dashboard`, `/tmp/ca`).
 - Switched execution to the non-root user by appending the `USER appuser` instruction.
 
+### 4. Cryptographic Supply Chain & AST Reconciliation Deficit
+**Finding:** Traditional Software Bill of Materials (SBOM) and manifest scanners (e.g., scanning `requirements.txt` or `package.json`) only inspect declared package dependencies. They fail to detect cryptographic algorithms and primitives directly instantiated in application source code and scripts (e.g., custom OpenSSL invocations, Python `cryptography` calls, or hardcoded algorithms).
+**Risk:** Organizations relying solely on package manifests maintain zero visibility into active cryptographic assets, leaving them unaware of quantum-vulnerable primitives (e.g., RSA-2048, ECDSA-P256) and unable to track NIST Post-Quantum Cryptography (PQC) migration.
+**Remediation:** 
+- Implemented a dual-engine CBOM architecture: `cdxgen` package scanning augmented by a multi-language semantic AST call-site discovery engine (`scripts/scan_crypto_ast.py`).
+- Automated CBOM reconciliation to directly inject source code cryptographic call sites (reconciling 14 previously invisible algorithms into CycloneDX 1.7 CBOM).
+- Built an automated CI test harness (`scripts/test_boms.sh`) with 4 mandatory gates to fail any build missing cryptographic assets.
+
+### 5. CI/CD Supply Chain Tampering & Action Version Pinning
+**Finding:** GitHub Actions workflows frequently reference mutable version tags (e.g., `@v7`, `@v4`), and older actions run on deprecated Node runtimes (e.g., Node 20 deprecation warnings).
+**Risk:** Mutable tags can be hijacked or rewritten by malicious upstream actors, resulting in arbitrary code execution during CI/CD builds (supply chain poisoning).
+**Remediation:** 
+- Upgraded all GitHub Actions workflows to Node 24-compatible versions.
+- Pinned all `uses:` directives across all workflows (`sbom.yml`, `security-testing.yml`, `commit-lint.yml`, `changelog.yml`, `docker-publish.yml`, `nightly-updates.yml`) to immutable 40-character commit SHAs.
+
 ## Conclusion
-This assessment emphasizes the importance of explicit permission handling for cryptographic material and adhering to container security best practices. Future developments in this repository must ensure that:
+This assessment emphasizes the importance of explicit permission handling for cryptographic material, container isolation, and rigorous supply chain governance. Future developments in this repository must ensure that:
 1. Cryptographic keys are consistently generated and stored with `600` permissions.
 2. All Docker containers define and execute as non-root users.
+3. Cryptographic call sites are inventoried via dual-engine AST reconciliation and validated through `scripts/test_boms.sh`.
+4. All CI/CD actions are pinned to immutable 40-character commit SHAs running on Node 24.
+

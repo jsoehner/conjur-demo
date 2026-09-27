@@ -86,6 +86,10 @@ if [[ -z "$TARGET" ]]; then
     usage
 fi
 
+if [[ "$TARGET_TYPE" == "docker" && -d "$TARGET" ]]; then
+    TARGET_TYPE="dir"
+fi
+
 log() {
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*"
 }
@@ -153,4 +157,18 @@ else
 fi
 
 log "CBOM generated successfully: $CBOM_OUTPUT"
+
+# ------------------------------------------------------------------------------
+# 3. Reconcile with AST Cryptographic Scanner (if available and directory target)
+# ------------------------------------------------------------------------------
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "${SCRIPT_DIR}/scan_crypto_ast.py" && "$TARGET_TYPE" == "dir" ]]; then
+    log "Step 3: Running dual-engine AST cryptographic scan & reconciliation..."
+    python3 "${SCRIPT_DIR}/scan_crypto_ast.py" "$TARGET" \
+        --cbom "$CBOM_OUTPUT" \
+        --output-json "${OUTPUT_DIR}/crypto-callsites.json" || {
+            log "Warning: AST scan encountered non-fatal issues."
+        }
+fi
+
 log "BOM generation process complete."
