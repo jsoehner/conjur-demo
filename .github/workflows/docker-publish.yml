@@ -21,6 +21,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Configure registry namespaces
+        run: |
+          DOCKER_USER="${{ secrets.DOCKERHUB_USERNAME }}"
+          if [ -z "$DOCKER_USER" ]; then
+            DOCKER_USER="${{ github.repository_owner }}"
+          fi
+          echo "DOCKERHUB_OWNER=$DOCKER_USER" >> "$GITHUB_ENV"
+          echo "GHCR_OWNER=ghcr.io/${{ github.repository_owner }}" >> "$GITHUB_ENV"
+
       - name: Log in to GitHub Container Registry (GHCR)
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
@@ -29,7 +38,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log in to Docker Hub
-        if: "${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}"
+        if: secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != ''
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -38,7 +47,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
 
-      # 1. Build and push Root Demo Orchestrator (conjur-demo)
+      # 1. Build and push Demo Orchestrator (Root)
       - name: Build and push Demo Orchestrator Image
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
@@ -46,10 +55,10 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/conjur-demo:latest
-            ghcr.io/${{ github.repository_owner }}/conjur-demo:${{ github.sha }}
-            ${{ secrets.DOCKERHUB_USERNAME != '' && format('{0}/conjur-demo:latest', secrets.DOCKERHUB_USERNAME) || '' }}
-            ${{ secrets.DOCKERHUB_USERNAME != '' && format('{0}/conjur-demo:{1}', secrets.DOCKERHUB_USERNAME, github.sha) || '' }}
+            ${{ env.GHCR_OWNER }}/conjur-demo:latest
+            ${{ env.GHCR_OWNER }}/conjur-demo:${{ github.sha }}
+            ${{ env.DOCKERHUB_OWNER }}/conjur-demo:latest
+            ${{ env.DOCKERHUB_OWNER }}/conjur-demo:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -61,10 +70,10 @@ jobs:
           file: ./workloads/ca-signer/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/conjur-demo-ca-signer:latest
-            ghcr.io/${{ github.repository_owner }}/conjur-demo-ca-signer:${{ github.sha }}
-            ${{ secrets.DOCKERHUB_USERNAME != '' && format('{0}/conjur-demo-ca-signer:latest', secrets.DOCKERHUB_USERNAME) || '' }}
-            ${{ secrets.DOCKERHUB_USERNAME != '' && format('{0}/conjur-demo-ca-signer:{1}', secrets.DOCKERHUB_USERNAME, github.sha) || '' }}
+            ${{ env.GHCR_OWNER }}/conjur-demo-ca-signer:latest
+            ${{ env.GHCR_OWNER }}/conjur-demo-ca-signer:${{ github.sha }}
+            ${{ env.DOCKERHUB_OWNER }}/conjur-demo-ca-signer:latest
+            ${{ env.DOCKERHUB_OWNER }}/conjur-demo-ca-signer:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -76,10 +85,10 @@ jobs:
           file: ./workloads/mtls-client/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/conjur-demo-workload-a:latest
-            ghcr.io/${{ github.repository_owner }}/conjur-demo-workload-a:${{ github.sha }}
-            ${{ secrets.DOCKERHUB_USERNAME != '' && format('{0}/conjur-demo-workload-a:latest', secrets.DOCKERHUB_USERNAME) || '' }}
-            ${{ secrets.DOCKERHUB_USERNAME != '' && format('{0}/conjur-demo-workload-a:{1}', secrets.DOCKERHUB_USERNAME, github.sha) || '' }}
+            ${{ env.GHCR_OWNER }}/conjur-demo-workload-a:latest
+            ${{ env.GHCR_OWNER }}/conjur-demo-workload-a:${{ github.sha }}
+            ${{ env.DOCKERHUB_OWNER }}/conjur-demo-workload-a:latest
+            ${{ env.DOCKERHUB_OWNER }}/conjur-demo-workload-a:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -91,10 +100,10 @@ jobs:
           file: ./workloads/mtls-server/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/conjur-demo-workload-b:latest
-            ghcr.io/${{ github.repository_owner }}/conjur-demo-workload-b:${{ github.sha }}
-            ${{ secrets.DOCKERHUB_USERNAME != '' && format('{0}/conjur-demo-workload-b:latest', secrets.DOCKERHUB_USERNAME) || '' }}
-            ${{ secrets.DOCKERHUB_USERNAME != '' && format('{0}/conjur-demo-workload-b:{1}', secrets.DOCKERHUB_USERNAME, github.sha) || '' }}
+            ${{ env.GHCR_OWNER }}/conjur-demo-workload-b:latest
+            ${{ env.GHCR_OWNER }}/conjur-demo-workload-b:${{ github.sha }}
+            ${{ env.DOCKERHUB_OWNER }}/conjur-demo-workload-b:latest
+            ${{ env.DOCKERHUB_OWNER }}/conjur-demo-workload-b:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -106,9 +115,9 @@ jobs:
           file: ./dashboard/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/conjur-demo-dashboard:latest
-            ghcr.io/${{ github.repository_owner }}/conjur-demo-dashboard:${{ github.sha }}
-            ${{ secrets.DOCKERHUB_USERNAME != '' && format('{0}/conjur-demo-dashboard:latest', secrets.DOCKERHUB_USERNAME) || '' }}
-            ${{ secrets.DOCKERHUB_USERNAME != '' && format('{0}/conjur-demo-dashboard:{1}', secrets.DOCKERHUB_USERNAME, github.sha) || '' }}
+            ${{ env.GHCR_OWNER }}/conjur-demo-dashboard:latest
+            ${{ env.GHCR_OWNER }}/conjur-demo-dashboard:${{ github.sha }}
+            ${{ env.DOCKERHUB_OWNER }}/conjur-demo-dashboard:latest
+            ${{ env.DOCKERHUB_OWNER }}/conjur-demo-dashboard:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
