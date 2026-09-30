@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM alpine:3.20
+FROM alpine:3.24
 
 LABEL org.opencontainers.image.title="conjur-demo" \
       org.opencontainers.image.description="CyberArk Conjur Policy-Controlled Certificate Lifecycle and mTLS Demo Runner" \
