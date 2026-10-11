@@ -8,7 +8,7 @@
 |---|---|---|
 | **Post-Quantum Ready (PQC)** | **0** | 🟢 Quantum-Resistant (NIST FIPS 203/204/205) |
 | **Quantum-Vulnerable (Backlog)** | **0** | 🔴 At Risk of 'Harvest Now, Decrypt Later' |
-| **Classical Symmetric / Hashing** | **1** | 🟡 Classical Security (Requires AES-256 / SHA-256+) |
+| **Classical Symmetric / Digest** | **1** | 🟡 Classical Security (Requires AES-256 / SHA-256+) |
 | **Asymmetric PQC Migration Progress** | **N/A (0 detected)** | (No asymmetric primitives detected in current scope) |
 
 ### 🎯 Cryptographic Supply Chain Coverage & Confidence
@@ -16,16 +16,18 @@
 | Evaluation Layer | Coverage / Status | Audit Confidence Assessment |
 |---|---|---|
 | **First-Party Code (`src/`)** | **100% Audited** (0 Custom Primitives) | 🟢 **HIGH** (Direct AST & SAST verified clean) |
-| **Third-Party Supply Chain** | **0.0%** (0 of 32 dependencies cataloged) | 🔴 LOW (Known profiles assimilated) |
-| **Overall Audit Confidence Score** | **3.0%** | **🔴 LOW** (32 unassimilated supply chain dependencies) |
+| **Third-Party Supply Chain** | **0.0%** (0 of 38 dependencies cataloged) | 🔴 LOW (Known profiles assimilated) |
+| **Overall Audit Confidence Score** | **2.6%** | 🔴 LOW (38 unassimilated supply chain dependencies) |
 
-### ✅ Post-Quantum Cryptography Migrated Assets
+| **System OS Inventory** | **Pending Update** | 🟡 **Warning** (Local OS crypto components not yet inventoried) |
+
+### ✅ Post-Quantum Ready Assets
 
 > ⚠️ **No Post-Quantum Ready assets detected.** Immediate migration planning recommended for asymmetric key exchanges and digital signatures.
 
 ### ⚠️ Quantum-Vulnerable Assets & Remediation Plan
 
-> ℹ️ **No quantum-vulnerable asymmetric assets found.** No asymmetric cryptographic primitives were detected in current scope.
+> ℹ️ **No quantum-vulnerable asymmetric assets found.** Asymmetric cryptographic primitives were not detected in current scope.
 
 ### 🔒 Classical Symmetric & Digest Assets
 
@@ -45,13 +47,13 @@
 | `actions/checkout` | v7.0.1 | `pkg:github/actions/checkout@v7.0.1` | 🟡 Unassimilated (No upstream CBOM) |
 | `actions/checkout` | v7.0.1 | `pkg:github/actions/checkout@v7.0.1` | 🟡 Unassimilated (No upstream CBOM) |
 | `actions/checkout` | v7.0.1 | `pkg:github/actions/checkout@v7.0.1` | 🟡 Unassimilated (No upstream CBOM) |
+| `actions/checkout` | v7.0.1 | `pkg:github/actions/checkout@v7.0.1` | 🟡 Unassimilated (No upstream CBOM) |
 | `actions/setup-node` | v7.0.0 | `pkg:github/actions/setup-node@v7.0.0` | 🟡 Unassimilated (No upstream CBOM) |
+| `actions/setup-python` | v5.6.0 | `pkg:github/actions/setup-python@v5.6.0` | 🟡 Unassimilated (No upstream CBOM) |
 | `actions/setup-python` | v5.6.0 | `pkg:github/actions/setup-python@v5.6.0` | 🟡 Unassimilated (No upstream CBOM) |
 | `actions/setup-python` | v7.0.0 | `pkg:github/actions/setup-python@v7.0.0` | 🟡 Unassimilated (No upstream CBOM) |
 | `actions/upload-artifact` | v4.6.2 | `pkg:github/actions/upload-artifact@v4.6.2` | 🟡 Unassimilated (No upstream CBOM) |
+| `actions/upload-artifact` | v4.6.2 | `pkg:github/actions/upload-artifact@v4.6.2` | 🟡 Unassimilated (No upstream CBOM) |
 | `anchore/sbom-action` | v0.24.2 | `pkg:github/anchore/sbom-action@v0.24.2` | 🟡 Unassimilated (No upstream CBOM) |
-| `aquasecurity/trivy-action` | v0.36.0 | `pkg:github/aquasecurity/trivy-action@v0.36.0` | 🟡 Unassimilated (No upstream CBOM) |
-| `cbomkit/cbomkit-action` | v2.3.0 | `pkg:github/cbomkit/cbomkit-action@v2.3.0` | 🟡 Unassimilated (No upstream CBOM) |
-| `docker` | 7.2.0 | `pkg:pypi/docker@7.2.0` | 🟡 Unassimilated (No upstream CBOM) |
-| `docker/build-push-action` | v7.4.0 | `pkg:github/docker/build-push-action@v7.4.0` | 🟡 Unassimilated (No upstream CBOM) |
-| *... and 17 more unassimilated dependencies* | | | |
+| `anchore/sbom-action` | v0.24.2 | `pkg:github/anchore/sbom-action@v0.24.2` | 🟡 Unassimilated (No upstream CBOM) |
+| *... and 23 more unassimilated dependencies* | | | |
