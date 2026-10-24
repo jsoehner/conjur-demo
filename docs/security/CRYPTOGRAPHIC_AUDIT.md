@@ -49,8 +49,8 @@
 | `actions/checkout` | v7.0.1 | `pkg:github/actions/checkout@v7.0.1` | 🟡 Unassimilated (No upstream CBOM) |
 | `actions/checkout` | v7.0.1 | `pkg:github/actions/checkout@v7.0.1` | 🟡 Unassimilated (No upstream CBOM) |
 | `actions/setup-node` | v7.0.0 | `pkg:github/actions/setup-node@v7.0.0` | 🟡 Unassimilated (No upstream CBOM) |
-| `actions/setup-python` | v5.6.0 | `pkg:github/actions/setup-python@v5.6.0` | 🟡 Unassimilated (No upstream CBOM) |
-| `actions/setup-python` | v5.6.0 | `pkg:github/actions/setup-python@v5.6.0` | 🟡 Unassimilated (No upstream CBOM) |
+| `actions/setup-python` | v7.0.0 | `pkg:github/actions/setup-python@v7.0.0` | 🟡 Unassimilated (No upstream CBOM) |
+| `actions/setup-python` | v7.0.0 | `pkg:github/actions/setup-python@v7.0.0` | 🟡 Unassimilated (No upstream CBOM) |
 | `actions/setup-python` | v7.0.0 | `pkg:github/actions/setup-python@v7.0.0` | 🟡 Unassimilated (No upstream CBOM) |
 | `actions/upload-artifact` | v7.0.2 | `pkg:github/actions/upload-artifact@v7.0.2` | 🟡 Unassimilated (No upstream CBOM) |
 | `actions/upload-artifact` | v7.0.2 | `pkg:github/actions/upload-artifact@v7.0.2` | 🟡 Unassimilated (No upstream CBOM) |
