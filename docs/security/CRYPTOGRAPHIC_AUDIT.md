@@ -48,7 +48,7 @@
 | `actions/checkout` | v7.0.1 | `pkg:github/actions/checkout@v7.0.1` | 🟡 Unassimilated (No upstream CBOM) |
 | `actions/checkout` | v7.0.1 | `pkg:github/actions/checkout@v7.0.1` | 🟡 Unassimilated (No upstream CBOM) |
 | `actions/checkout` | v7.0.1 | `pkg:github/actions/checkout@v7.0.1` | 🟡 Unassimilated (No upstream CBOM) |
-| `actions/setup-node` | v7.0.0 | `pkg:github/actions/setup-node@v7.0.0` | 🟡 Unassimilated (No upstream CBOM) |
+| `actions/setup-node` | v7.1.0 | `pkg:github/actions/setup-node@v7.1.0` | 🟡 Unassimilated (No upstream CBOM) |
 | `actions/setup-python` | v7.0.0 | `pkg:github/actions/setup-python@v7.0.0` | 🟡 Unassimilated (No upstream CBOM) |
 | `actions/setup-python` | v7.0.0 | `pkg:github/actions/setup-python@v7.0.0` | 🟡 Unassimilated (No upstream CBOM) |
 | `actions/setup-python` | v7.0.0 | `pkg:github/actions/setup-python@v7.0.0` | 🟡 Unassimilated (No upstream CBOM) |
