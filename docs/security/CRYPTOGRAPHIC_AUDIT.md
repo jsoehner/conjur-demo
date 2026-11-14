@@ -1,21 +1,21 @@
 ## 🛡️ Cryptographic Bill of Materials (CBOM) & PQC Migration Assessment
 
-**Format**: CycloneDX (v1.6) | **First-Party Code Crypto Assets**: 3 | **Total Tracked Crypto Assets**: 3
+**Format**: CycloneDX (v1.6) | **First-Party Code Crypto Assets**: 4 | **Total Tracked Crypto Assets**: 4
 
 ### 📊 Post-Quantum Migration Scorecard
 
 | Metric | Count | Migration Status |
 |---|---|---|
-| **Post-Quantum Ready (PQC)** | **0** | 🟢 Quantum-Resistant (NIST FIPS 203/204/205) |
+| **Post-Quantum Ready (PQC)** | **1** | 🟢 Quantum-Resistant (NIST FIPS 203/204/205) |
 | **Quantum-Vulnerable (Backlog)** | **1** | 🔴 At Risk of 'Harvest Now, Decrypt Later' |
 | **Classical Symmetric / Digest** | **2** | 🟡 Classical Security (Requires AES-256 / SHA-256+) |
-| **Asymmetric PQC Migration Progress** | **0.0%** | (0 of 1 asymmetric/vulnerable primitives migrated) |
+| **Asymmetric PQC Migration Progress** | **50.0%** | (1 of 2 asymmetric/vulnerable primitives migrated) |
 
 ### 🎯 Cryptographic Supply Chain Coverage & Confidence
 
 | Evaluation Layer | Coverage / Status | Audit Confidence Assessment |
 |---|---|---|
-| **First-Party Code (`src/`, `scripts/`)** | **100% Audited** (3 Crypto Primitive(s) Inventoried across Python (2), Shell (5)) | 🟢 **HIGH** (Direct AST & SAST verified) |
+| **First-Party Code (`src/`, `scripts/`)** | **100% Audited** (4 Crypto Primitive(s) Inventoried across Python (13), Shell (5)) | 🟢 **HIGH** (Direct AST & SAST verified) |
 | **Third-Party Supply Chain** | **90.9%** (20 of 22 dependencies cataloged) | 🟢 HIGH (Known profiles assimilated) |
 | **Overall Audit Confidence Score** | **91.3%** | 🟢 HIGH (2 unassimilated supply chain dependencies) |
 
@@ -23,7 +23,9 @@
 
 ### ✅ Post-Quantum Ready Assets
 
-> ⚠️ **No Post-Quantum Ready assets detected.** Immediate migration planning recommended for asymmetric key exchanges and digital signatures.
+| Component Name | Primitive | Key/Parameter Set | PQC Standard | Provenance / Location(s) |
+|---|---|---|---|---|
+| `ML-DSA-65` | signature | 65 | ML-DSA (FIPS 204) | First-Party Code (SAST/AST)<br>`scripts/verify_oss_signatures.py:164`<br>`scripts/verify_oss_signatures.py:165`<br>`scripts/verify_oss_signatures.py:250`<br>`scripts/verify_oss_signatures.py:284`<br>`scripts/verify_oss_signatures.py:286`<br>`scripts/verify_oss_signatures.py:292`<br>`scripts/verify_oss_signatures.py:379`<br>`scripts/verify_oss_signatures.py:384`<br>`scripts/verify_oss_signatures.py:386`<br>`scripts/verify_oss_signatures.py:399` |
 
 ### ⚠️ Quantum-Vulnerable Assets & Remediation Plan
 
@@ -35,7 +37,7 @@
 
 | Component Name | Primitive | Key Length | Quantum Resistance Assessment | Provenance / Location(s) |
 |---|---|---|---|---|
-| `SHA-256` | hash | 256 | Quantum-Resistant (Grover's proof) | First-Party Code (SAST/AST)<br>`run_docker.sh:310`<br>`init.sh:72`<br>`workloads/ca-signer/signer.py:47` |
+| `SHA-256` | hash | 256 | Quantum-Resistant (Grover's proof) | First-Party Code (SAST/AST)<br>`run_docker.sh:310`<br>`init.sh:72`<br>`scripts/verify_oss_signatures.py:368`<br>`workloads/ca-signer/signer.py:47` |
 | `TLS-1.3` | protocol | v1.3 | TLS 1.3 Transport (Enable hybrid X25519MLKEM768 via OpenSSL 3.5+) | First-Party Code (SAST/AST)<br>`workloads/mtls-server/app.py:69` |
 
 ### ⚠️ Unassimilated Third-Party Binaries & Cryptographic Blind Spots
