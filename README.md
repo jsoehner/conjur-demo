@@ -317,6 +317,23 @@ bash scripts/attach_oci_bom.sh oss/cbom.json my-registry.io/app:v1.0.0
 python3 scripts/fetch_oci_cbom.py my-registry.io/app:v1.0.0 --output-dir oss
 ```
 
+### 6. Local Trusted OSS Registry & Signed Verification (`scripts/verify_oss_signatures.py`)
+
+For local development against a self-hosted Trusted OSS registry, create gitignored local configuration files (`uv.toml`, `pip.conf`, `.oss/oss.env`, and `docker-compose.override.yml`) pointing to your registry's `/pypi/trusted/simple` endpoint. Dockerfiles accept optional `OSS_PIP_INDEX_URL` and `OSS_PIP_TRUSTED_HOST` build args and fall back to standard PyPI when unset.
+
+Verify detached GPG (`.asc`) and NIST FIPS 204 ML-DSA-65 (`.mldsa65`) signatures for all project Python dependencies (with automatic retries while the registry fetches, scans, and signs artifacts):
+
+```bash
+# Uses local .oss/oss.env, uv.toml, pip.conf, or OSS_REGISTRY_URL
+python3 scripts/verify_oss_signatures.py
+
+# Or specify endpoint and retry parameters explicitly
+python3 scripts/verify_oss_signatures.py \
+  --oss-url http://<oss-registry-host>:<port> \
+  --retries 5 \
+  --retry-delay 5
+```
+
 ---
 
 ## Architectural Decision Records (ADRs)
@@ -324,3 +341,4 @@ python3 scripts/fetch_oci_cbom.py my-registry.io/app:v1.0.0 --output-dir oss
 Key architectural decisions governing this repository's security, supply chain, and cryptography strategy are documented under [`docs/adr/`](docs/adr/):
 
 - [**ADR-0001: Automated SBOM and CBOM Supply Chain Governance Pipeline**](docs/adr/0001-automated-sbom-cbom-supply-chain-governance.md) - Context, alternatives considered, decision rationale, and downstream consequences for adopting automated dual-engine SBOM/CBOM scanning, AST call-site analysis, and CI gate verification.
+- [**ADR-0002: Local Trusted OSS Registry Integration and Signed Artifact Verification**](docs/adr/0002-local-trusted-oss-registry-and-signed-verification.md) - Gitignored local registry caching configuration, non-intrusive Dockerfile build-arg support, and GPG/ML-DSA-65 signed verification with retry handling.

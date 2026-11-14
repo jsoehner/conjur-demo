@@ -9,3 +9,10 @@ dashboard/__pycache__/
 
 # Generated BOM artifacts
 oss/
+
+# Local OSS registry caching & endpoint configuration
+uv.toml
+pip.conf
+.oss/
+.oss-cache/
+docker-compose.override.yml

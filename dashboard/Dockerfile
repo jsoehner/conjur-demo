@@ -9,7 +9,13 @@ RUN apt-get update && \
 WORKDIR /dashboard
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+ARG OSS_PIP_INDEX_URL=""
+ARG OSS_PIP_TRUSTED_HOST=""
+RUN if [ -n "$OSS_PIP_INDEX_URL" ]; then \
+      pip install --no-cache-dir --index-url "$OSS_PIP_INDEX_URL" ${OSS_PIP_TRUSTED_HOST:+--trusted-host "$OSS_PIP_TRUSTED_HOST"} -r requirements.txt; \
+    else \
+      pip install --no-cache-dir -r requirements.txt; \
+    fi
 
 COPY app.py .
 COPY static/ static/
