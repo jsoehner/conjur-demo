@@ -31,13 +31,13 @@
 
 | Component / Algorithm | Type / Primitive | Key Length / Curve | Recommended Target | Provenance / Context |
 |---|---|---|---|---|
-| **`RSA-2048`**<br><sub>RSA-2048</sub> | algorithm / signature | 2048 | **ML-KEM-768 / Kyber (FIPS 203)** | First-Party Code (SAST/AST)<br>`init.sh:71`<br><sub><code>openssl genrsa -out certs/ca.key 2048 2>/dev/null</code></sub><br><br>`run_docker.sh:309`<br><sub><code>openssl genrsa -out certs/ca.key 2048 2>/dev/null</code></sub><br><br>`workloads/issuer-client/sidecar.sh:31`<br><sub><code>openssl genrsa -out $KEY_FILE.tmp 2048 2>/dev/null</code></sub> |
+| **`RSA-2048`**<br><sub>RSA-2048</sub> | algorithm / signature | 2048 | **ML-KEM-768 / Kyber (FIPS 203)** | First-Party Code (SAST/AST)<br>`run_docker.sh:309`<br><sub><code>openssl genrsa -out certs/ca.key 2048 2>/dev/null</code></sub><br><br>`init.sh:71`<br><sub><code>openssl genrsa -out certs/ca.key 2048 2>/dev/null</code></sub><br><br>`workloads/issuer-client/sidecar.sh:31`<br><sub><code>openssl genrsa -out $KEY_FILE.tmp 2048 2>/dev/null</code></sub> |
 
 ### 🔒 Classical Symmetric & Digest Assets
 
 | Component Name | Primitive | Key Length | Quantum Resistance Assessment | Provenance / Location(s) |
 |---|---|---|---|---|
-| `SHA-256` | hash | 256 | Quantum-Resistant (Grover's proof) | First-Party Code (SAST/AST)<br>`init.sh:72`<br>`run_docker.sh:310`<br>`scripts/verify_oss_signatures.py:368`<br>`workloads/ca-signer/signer.py:47` |
+| `SHA-256` | hash | 256 | Quantum-Resistant (Grover's proof) | First-Party Code (SAST/AST)<br>`run_docker.sh:310`<br>`init.sh:72`<br>`scripts/verify_oss_signatures.py:368`<br>`workloads/ca-signer/signer.py:47` |
 | `TLS-1.3` | protocol | v1.3 | TLS 1.3 Transport (Enable hybrid X25519MLKEM768 via OpenSSL 3.5+) | First-Party Code (SAST/AST)<br>`workloads/mtls-server/app.py:69` |
 
 ### ⚠️ Unassimilated Third-Party Binaries & Cryptographic Blind Spots
