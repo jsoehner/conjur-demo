@@ -168,42 +168,6 @@ workload-a-1  | [Client] Response: 200 - Hello from Workload B! mTLS connection 
 
 This repository enforces the **Repository Governance Orchestrator** baseline to guarantee developer experience, commit hygiene, multi-layer security scanning, and dual-engine cryptographic supply chain visibility.
 
-### 🛡️ Dual-Engine SBOM & CBOM Architecture
-
-Manifest scanners alone cannot identify instantiated cryptographic algorithms in source code. This project implements a **dual-engine scanning architecture**:
-1. **Manifest Engine (Syft / cdxgen)**: Inventories software packages and dependencies into SPDX (`oss/sbom.spdx.json`) and CycloneDX (`oss/cbom.json`).
-2. **Semantic AST Engine (`scripts/scan_crypto_ast.py`)**: Traverses source code abstract syntax trees across Python, JS/TS, Go, Java, C/C++, Rust, and C# to identify runtime crypto call sites and automatically reconcile them into the CBOM.
-3. **Automated CI Test Harness (`scripts/test_boms.sh`)**: Enforces 4 strict gates in CI and locally, failing builds if BOMs are missing, invalid, or contain zero cryptographic assets.
-
-```mermaid
-flowchart LR
-    SRC["Source Code & Dependencies"] --> SYFT["Syft / cdxgen<br/>(Software Packages)"]
-    SRC --> AST["Semantic AST Scanner<br/>(Runtime Crypto Calls)"]
-    SYFT --> SBOM["SPDX / CycloneDX SBOM"]
-    SYFT --> CBOM["CycloneDX 1.7 CBOM"]
-    AST --> RECON["CBOM Reconciliation"]
-    CBOM --> RECON
-    RECON --> HARNESS["Automated CI Test Harness<br/>(scripts/test_boms.sh)"]
-    RECON --> PQC["PQC Migration Scorecard<br/>(scripts/analyze_cbom.py)"]
-```
-
-### 📊 Local BOM Generation & Verification
-
-Generate and verify bill of materials locally:
-
-```bash
-# 1. Generate SBOM and CBOM with semantic AST reconciliation
-bash scripts/generate_boms.sh .
-
-# 2. Run automated validation test harness (4/4 gates)
-bash scripts/test_boms.sh oss
-
-# 3. Generate Post-Quantum Cryptography (PQC) markdown & JSON scorecards
-python3 scripts/analyze_cbom.py oss/cbom.json \
-  --markdown oss/crypto-summary.md \
-  --json oss/crypto-analysis.json
-```
-
 ### 🔒 Continuous Security & Governance Workflows
 
 | Workflow | Purpose | Standards & Controls |
@@ -229,95 +193,14 @@ This project tracks Software & Cryptographic Bill of Materials (SBOM & CBOM) and
 
 ---
 
-## Automated SBOM & CBOM Supply Chain Pipeline
+## 🔐 SBOM, CBOM & PQC Governance
 
-This repository features an automated continuous supply chain security pipeline defined in [`.github/workflows/sbom-cbom.yml`](.github/workflows/sbom-cbom.yml). On every push, pull request, or tag release, the workflow executes a multi-stage generation, validation, and auditing process:
+This repository integrates the [`jsoehner/jsi-bom-actions`](https://github.com/jsoehner/jsi-bom-actions) GitHub Action ([`.github/workflows/sbom-cbom.yml`](.github/workflows/sbom-cbom.yml)) for automated Software Bill of Materials (SBOM), Cryptographic Bill of Materials (CBOM), and Post-Quantum Cryptography (PQC) readiness auditing.
 
-```mermaid
-flowchart LR
-    A["Source & Dependencies"] --> B["Dual-Engine SBOM\n(Anchore/Syft CycloneDX & SPDX)"]
-    A --> C["CBOM Generation\n(cbomkit)"]
-    A --> D["AST Semantic Crypto Scan\n(scripts/scan_crypto_ast.py)"]
-    B --> E["CI Validation Test Harness\n(scripts/test_boms.sh)"]
-    C --> E
-    D --> E
-    E --> F["PQC Migration Assessment\n(scripts/analyze_cbom.py)"]
-    F --> G["docs/security/CRYPTOGRAPHIC_AUDIT.md"]
-    F --> H["GitHub Actions Artifacts (oss/)"]
-```
+- **Latest Audit Report:** [`docs/security/CRYPTOGRAPHIC_AUDIT.md`](docs/security/CRYPTOGRAPHIC_AUDIT.md)
+- **Learn More:** [jsoehner/jsi-bom-actions](https://github.com/jsoehner/jsi-bom-actions)
 
-### CI Pipeline Stages
-
-1. **Dual-Engine SBOM Generation**: Uses `anchore/sbom-action` to produce standard CycloneDX (`oss/sbom.cyclonedx.json`) and SPDX (`oss/sbom.spdx.json`) inventory files.
-2. **Cryptographic Bill of Materials (CBOM)**: Uses `cbomkit/cbomkit-action` to discover cryptographic algorithms, certificates, keys, and cryptographic assets (`oss/cbom.json`).
-3. **Dual-Engine AST Semantic Crypto Scan**: Executes `scripts/scan_crypto_ast.py` to parse source code abstract syntax trees (ASTs), mapping cryptographic call-sites and cipher initializations to the CBOM inventory.
-4. **Automated Verification Harness**: Runs `scripts/test_boms.sh` to validate JSON schemas, verify required CycloneDX attributes, and enforce non-empty inventory thresholds as a build gate.
-5. **Post-Quantum Cryptography (PQC) Assessment**: Runs `scripts/analyze_cbom.py` to classify cryptographic assets by quantum-readiness and output markdown summary dashboards to `$GITHUB_STEP_SUMMARY`.
-6. **Continuous Governance Publishing**: Automatically syncs the latest cryptographic posture to [`docs/security/CRYPTOGRAPHIC_AUDIT.md`](docs/security/CRYPTOGRAPHIC_AUDIT.md) and publishes all BOM assets to workflow artifacts.
-
----
-
-## Local Scripts & Verification
-
-All pipeline stages can be executed locally in development environments using scripts in `scripts/`:
-
-### 1. Generating BOMs (`scripts/generate_boms.sh`)
-
-Generate SBOMs and CBOMs for either source directories or Docker container images:
-
-```bash
-# Scan current repository directory (outputs to oss/)
-bash scripts/generate_boms.sh -t dir .
-
-# Scan a local Docker image
-bash scripts/generate_boms.sh -t docker conjur-demo:local
-
-# Specify custom output directory and format
-bash scripts/generate_boms.sh -t dir -o build/boms -f cyclonedx-json .
-```
-
-### 2. Testing & Validating BOMs (`scripts/test_boms.sh`)
-
-Run automated JSON validation, schema verification, and inventory count checks:
-
-```bash
-bash scripts/test_boms.sh oss
-```
-
-### 3. Scanning Source AST for Crypto Callsites (`scripts/scan_crypto_ast.py`)
-
-Scan Python and repository source code ASTs for cryptographic primitive invocations and reconcile with an existing CBOM:
-
-```bash
-python3 scripts/scan_crypto_ast.py . \
-  --cbom oss/cbom.json \
-  --output-json oss/crypto-callsites.json
-```
-
-### 4. PQC Readiness Analysis (`scripts/analyze_cbom.py`)
-
-Analyze a generated CBOM against software dependencies and generate markdown or JSON risk summaries:
-
-```bash
-python3 scripts/analyze_cbom.py oss/cbom.json \
-  --sbom oss/sbom.cyclonedx.json \
-  --json oss/crypto-analysis.json \
-  --markdown docs/security/CRYPTOGRAPHIC_AUDIT.md
-```
-
-### 5. OCI Artifact Attachment (`scripts/attach_oci_bom.sh` & `scripts/fetch_oci_cbom.py`)
-
-Publish and retrieve CBOMs attached to OCI container registries:
-
-```bash
-# Attach CBOM to container image in registry
-bash scripts/attach_oci_bom.sh oss/cbom.json my-registry.io/app:v1.0.0
-
-# Fetch CBOM from container image
-python3 scripts/fetch_oci_cbom.py my-registry.io/app:v1.0.0 --output-dir oss
-```
-
-### 6. Local Trusted OSS Registry & Signed Verification (`scripts/verify_oss_signatures.py`)
+## Local Trusted OSS Registry & Signed Verification (`scripts/verify_oss_signatures.py`)
 
 For local development against a self-hosted Trusted OSS registry, create gitignored local configuration files (`uv.toml`, `pip.conf`, `.oss/oss.env`, and `docker-compose.override.yml`) pointing to your registry's `/pypi/trusted/simple` endpoint. Dockerfiles accept optional `OSS_PIP_INDEX_URL` and `OSS_PIP_TRUSTED_HOST` build args and fall back to standard PyPI when unset.
 
